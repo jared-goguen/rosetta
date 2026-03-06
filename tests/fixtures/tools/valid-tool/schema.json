@@ -1,0 +1,4 @@
+{
+  "input": { "type": "object", "properties": { "value": { "type": "string" } }, "required": ["value"] },
+  "output": { "type": "object", "properties": { "result": { "type": "string" } }, "required": ["result"] }
+}

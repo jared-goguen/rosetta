@@ -1,0 +1,1 @@
+Uppercases a string value.
