@@ -7,6 +7,16 @@ async function exists(p: string): Promise<boolean> {
   try { await stat(p); return true; } catch { return false; }
 }
 
+async function runCommand(command: string, args: string[], cwd: string, ignoreErrors: boolean = false): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(command, args, { cwd, stdio: "ignore" });
+    proc.on("close", (code) => {
+      if (code === 0 || ignoreErrors) resolve();
+      else reject(new Error(`${command} ${args.join(" ")} failed with code ${code}`));
+    });
+  });
+}
+
 async function runBunInstall(projectPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn("bun", ["install"], { 
@@ -25,6 +35,9 @@ export async function createServer(input: {
   directory: string;
   dependencies?: string[];
   tools?: string[];
+  git?: boolean;
+  remote?: string;
+  register?: boolean;
 }) {
   const projectPath = join(input.directory, input.name);
   
@@ -224,10 +237,129 @@ export async function cleanRoot(root: string): Promise<void> {
     // Don't fail the whole operation if install fails
   }
 
+  // Create .gitignore (always, unless explicitly disabled)
+  if (input.git !== false) {
+    const gitignore = `node_modules/
+dist/
+build/
+*.log
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.swp
+*.swo
+*~
+`;
+    const gitignorePath = join(projectPath, ".gitignore");
+    await writeFile(gitignorePath, gitignore, "utf8");
+    files.push(".gitignore");
+  }
+
+  // Create README.md template
+  const readmeContent = `# ${input.name}
+
+An MCP server for [TODO: describe what this server does].
+
+## Building
+
+\`\`\`bash
+cd ${projectPath}
+bun install
+\`\`\`
+
+## Running
+
+\`\`\`bash
+bun run src/index.ts
+\`\`\`
+
+## Testing
+
+\`\`\`bash
+bun test
+\`\`\`
+
+## Tools
+
+This server provides the following tools:
+
+${input.tools?.map(tool => `- \`${tool}\` - TODO: describe what ${tool} does`).join("\n") || "- (TODO: document available tools)"}
+
+## Configuration
+
+[TODO: Document any required environment variables or configuration]
+`;
+  
+  const readmePath = join(projectPath, "README.md");
+  await writeFile(readmePath, readmeContent, "utf8");
+  files.push("README.md");
+
+  // Initialize git repository if requested (default: true)
+  const shouldInitGit = input.git !== false;
+  let remoteUrl = "";
+  
+  if (shouldInitGit) {
+    try {
+      // Initialize git repo
+      await runCommand("git", ["init"], projectPath);
+      await runCommand("git", ["config", "user.name", "Jared Goguen"], projectPath);
+      await runCommand("git", ["config", "user.email", "jared@example.com"], projectPath);
+      
+      // Create initial commit
+      await runCommand("git", ["add", "."], projectPath);
+      await runCommand("git", ["commit", "-m", `Initial commit: ${input.name} scaffold`], projectPath);
+      
+      // Add remote if provided
+      if (input.remote) {
+        remoteUrl = input.remote;
+        await runCommand("git", ["remote", "add", "origin", remoteUrl], projectPath);
+        
+        // Attempt to push (may fail if repo doesn't exist yet)
+        await runCommand("git", ["push", "-u", "origin", "main"], projectPath, true);
+      }
+    } catch (err) {
+      console.warn("git initialization warning:", err);
+      // Don't fail if git operations fail
+    }
+  }
+
+  // Register in opencode.json if requested
+  if (input.register) {
+    try {
+      const opencodeJsonPath = "/home/jared/source/opencode.json";
+      const opencodeContent = JSON.parse(await readFile(opencodeJsonPath, "utf8"));
+      
+      // Add MCP entry
+      if (!opencodeContent.mcp) {
+        opencodeContent.mcp = {};
+      }
+      
+      opencodeContent.mcp[input.name] = {
+        enabled: true,
+        type: "local",
+        command: ["bun", "run", join(projectPath, "src", "index.ts")],
+        environment: {}
+      };
+      
+      await writeFile(opencodeJsonPath, JSON.stringify(opencodeContent, null, 2), "utf8");
+      files.push("(registered in opencode.json)");
+    } catch (err) {
+      console.warn("opencode.json registration warning:", err);
+      // Don't fail if registration fails
+    }
+  }
+
   return { 
     content: [{ 
       type: "text" as const, 
-      text: JSON.stringify({ path: projectPath, files }) 
+      text: JSON.stringify({ 
+        path: projectPath, 
+        files,
+        git_initialized: shouldInitGit,
+        remote_url: remoteUrl || undefined,
+        registered: input.register || false
+      }) 
     }] 
   };
 }

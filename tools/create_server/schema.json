@@ -23,6 +23,18 @@
           "type": "string"
         },
         "description": "Optional list of initial tool names to create empty tool directories for"
+      },
+      "git": {
+        "type": "boolean",
+        "description": "Initialize git repository (default: true)"
+      },
+      "remote": {
+        "type": "string",
+        "description": "Optional GitHub repository URL to add as origin remote (e.g., git@github.com:user/repo.git)"
+      },
+      "register": {
+        "type": "boolean",
+        "description": "Register the server in opencode.json (default: false)"
       }
     },
     "required": ["name", "directory"],
@@ -41,6 +53,18 @@
           "type": "string"
         },
         "description": "List of files that were created"
+      },
+      "git_initialized": {
+        "type": "boolean",
+        "description": "Whether git repository was initialized"
+      },
+      "remote_url": {
+        "type": "string",
+        "description": "GitHub remote URL if provided"
+      },
+      "registered": {
+        "type": "boolean",
+        "description": "Whether server was registered in opencode.json"
       }
     },
     "required": ["path", "files"],
