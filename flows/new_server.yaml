@@ -1,0 +1,324 @@
+id: new-server
+name: New MCP Server
+description: >
+  Reusable flow for building any MCP server using Rosetta conventions.
+  Guides an agent from requirements through research, scaffolding, shared
+  utility implementation, per-tool implementation, unit validation,
+  integration validation, live debugging, and final configuration.
+  Designed to be restarted from any state when resuming a session.
+
+# --- Capability sets ---
+# Each set names a group of tools. States grant permissions by referencing
+# set names. This keeps state definitions declarative and diff-friendly.
+capabilities:
+  rosetta_scaffold:
+    - rosetta_create_server
+  rosetta_read:
+    - rosetta_list_tools
+    - rosetta_get_tool
+    - rosetta_list_commands
+    - rosetta_get_command
+    - rosetta_list_plugins
+    - rosetta_get_plugin
+    - rosetta_get_schema
+    - rosetta_validate
+  rosetta_write:
+    - rosetta_add_tool
+    - rosetta_update_tool
+    - rosetta_remove_tool
+    - rosetta_add_command
+    - rosetta_update_command
+    - rosetta_remove_command
+    - rosetta_add_plugin
+    - rosetta_update_plugin
+    - rosetta_remove_plugin
+  filesystem:
+    - read
+    - write
+    - edit
+    - glob
+    - grep
+  runtime:
+    - bash
+
+# --- States ---
+states:
+  gathering:
+    description: >
+      Clarify scope with the user before touching anything. Establish:
+      server name (lowercase-hyphenated), parent directory, high-level
+      purpose (what system/API it wraps), and whether shared utilities
+      will be needed (auth, API client, parsers). Do not research or
+      scaffold until the user confirms all decisions.
+    permissions:
+      - rosetta_read
+    subagent:
+      prompt: >
+        You are gathering requirements for a new MCP server. Ask the user to
+        confirm: (1) server name in lowercase-hyphenated form, (2) parent
+        directory, (3) high-level purpose and what system/API it wraps,
+        (4) whether shared utilities will be needed (auth client, parsers, etc.).
+        Do not research or scaffold anything. Record the confirmed decisions and
+        transition to researching only when the user has approved all four items.
+
+  researching:
+    description: >
+      Study the target system before writing any code. Use webfetch to
+      read official API docs, grep through reference implementations,
+      and run exploratory bash commands (e.g. curl against the API).
+      Goal: confirm the tool list, identify the correct request/response
+      formats, auth mechanisms, and any non-obvious behaviour (e.g. which
+      hash algorithm the API expects). Produce a short written summary of
+      findings — auth pattern, base URL, tool list, shared utility design
+      — and confirm it with the user before moving on.
+      Lesson learned: assumptions about API behaviour (e.g. SHA-256 vs
+      MD5) will cost more time to debug later than verifying upfront.
+    permissions:
+      - rosetta_read
+      - filesystem
+      - runtime
+    subagent:
+      prompt: >
+        You are researching an API or system to build an MCP server for it.
+        Use webfetch to read official docs, run exploratory curl commands,
+        and grep any available reference implementations. Your goal is to
+        determine: (1) auth mechanism and required credentials, (2) base URL
+        and request/response envelope format, (3) complete list of tools to
+        build and their parameters, (4) any non-obvious behaviour (e.g. which
+        hash algorithm, which encoding, required headers). Write a brief
+        findings summary and ask the user to confirm before transitioning.
+
+  scaffolding:
+    description: >
+      Call create_server with the confirmed name, directory, tool list,
+      and dependencies. Then immediately write stub files for every shared
+      utility identified during research (e.g. src/client.ts, src/auth.ts)
+      so that tool implementations have something to import from day one.
+      Stubs should export the right function signatures with TODO bodies —
+      not empty files. Verify the full directory tree before transitioning.
+    permissions:
+      - rosetta_scaffold
+      - rosetta_read
+      - filesystem
+    subagent:
+      prompt: >
+        You are scaffolding a new MCP server using Rosetta conventions.
+        Call create_server with the confirmed name, parent directory, tool
+        list, and dependencies. Then write stub files for every shared utility
+        identified during research — each stub must export the correct function
+        signatures with TODO bodies, not be empty. After scaffolding, verify
+        the full directory tree matches expectations before transitioning to
+        implementing_shared.
+
+  implementing_shared:
+    description: >
+      Fill in the shared utility stubs created during scaffolding.
+      These modules underpin every tool, so get them right before writing
+      tool handlers. Typical content: credential validation, base API
+      client (wraps fetch + parses response envelope), error normalisation,
+      shared type definitions. Write at least one focused unit test per
+      shared module to validate the core logic (e.g. error thrown on
+      missing env var, correct URL construction). Do not move on until
+      those tests pass.
+    permissions:
+      - rosetta_read
+      - rosetta_write
+      - filesystem
+      - runtime
+    subagent:
+      prompt: >
+        You are implementing shared utilities for a new MCP server. Fill in
+        the stubs in src/ — typically: credential/config validation that throws
+        on missing env vars, a base API client wrapping fetch with auth headers
+        and response envelope parsing, error normalisation, and shared TypeScript
+        types. For each module, write at least one unit test covering the core
+        logic. Run bun test tests/unit and fix all failures before transitioning.
+
+  implementing_tools:
+    description: >
+      Implement each tool handler in turn. For every tool directory write
+      index.ts (imports from src/ shared modules), purpose.md (first line
+      is the MCP tool description), and schema.json (strict input/output
+      schemas, additionalProperties: false on inputs). Keep handlers thin:
+      validate inputs, call shared client, return formatted MCP content.
+      Non-trivial logic (parsing, hashing, encoding) belongs in src/, not
+      in tool handlers. Cross-check request formats against the research
+      notes — do not assume.
+    permissions:
+      - rosetta_read
+      - rosetta_write
+      - filesystem
+    subagent:
+      prompt: >
+        You are implementing tool handlers for a new MCP server. For each
+        planned tool: write tools/<name>/index.ts (thin handler, imports from
+        src/), tools/<name>/purpose.md (first line is the MCP description),
+        and tools/<name>/schema.json (strict input/output schemas with
+        additionalProperties: false). Keep handlers thin — delegate non-trivial
+        logic to src/. Cross-check every request format against the research
+        notes before writing. Transition to validating_unit when all tools
+        have all three files.
+
+  validating_unit:
+    description: >
+      Run `bun test tests/unit` to exercise pure logic with no I/O.
+      Fix any failures before proceeding. If no unit tests exist, write
+      minimal coverage for the shared utilities (auth config validation,
+      error handling, any non-trivial transformations). Unit tests must
+      pass without network access or running subprocesses.
+    permissions:
+      - rosetta_read
+      - filesystem
+      - runtime
+    subagent:
+      prompt: >
+        You are validating unit tests for a new MCP server. Run
+        `bun test tests/unit`. If tests fail, fix the failures — do not
+        move on with broken tests. If no unit tests exist yet, write minimal
+        coverage for the shared utilities covering at least: config validation
+        (missing env vars throw), error normalisation, and any non-trivial
+        transformations. All unit tests must pass before transitioning.
+
+  validating_integration:
+    description: >
+      Run `bun test tests/integration` to exercise the full server through
+      the stdio MCP transport. Tests should verify: server starts cleanly,
+      all tools appear in tools/list, each tool handler returns a valid MCP
+      response. If no integration tests exist, write a minimal harness that
+      at least checks tool discovery and one happy-path tool call. Fix
+      failures before proceeding. Passing here means the server is
+      structurally correct — live API behaviour is validated in debugging.
+    permissions:
+      - rosetta_read
+      - filesystem
+      - runtime
+    subagent:
+      prompt: >
+        You are running integration tests for a new MCP server. Run
+        `bun test tests/integration`. If tests fail, fix them. If no
+        integration tests exist, write a minimal harness using the stdio
+        transport that verifies: (1) server starts without error, (2) all
+        expected tools appear in tools/list, (3) at least one tool returns
+        a valid MCP response. All tests must pass. If tests pass but you
+        suspect live API behaviour may differ, note it and transition to
+        debugging; otherwise transition to configuring.
+
+  debugging:
+    description: >
+      Live integration issues found — tests pass but real API calls fail.
+      Typical causes: wrong request format, wrong auth header, wrong
+      encoding (e.g. base64 vs raw), wrong hash algorithm, missing required
+      fields, API-specific quirks not visible in docs. Debugging strategy:
+      (1) run the failing call manually with curl or a bun -e script to see
+      raw request/response, (2) find a reference implementation (SDK, CLI
+      tool) and diff its behaviour against yours, (3) apply the smallest
+      targeted fix. After each fix loop back to validating_unit to ensure
+      nothing regressed.
+      Lesson learned: when a deployment API returns success but the live
+      site fails, compare your hash/encoding/format against a known-good
+      reference implementation before guessing.
+    permissions:
+      - rosetta_read
+      - rosetta_write
+      - filesystem
+      - runtime
+    subagent:
+      prompt: >
+        You are debugging a live API integration. Tests pass but real API
+        calls fail. Strategy: (1) reproduce the failure with a minimal curl
+        or `bun -e` script to see the raw request and response, (2) find a
+        reference implementation (official SDK, CLI, or known-good example)
+        and compare its exact request format, headers, encoding, and hash
+        algorithm against yours, (3) apply the smallest targeted fix.
+        After each fix, transition back to validating_unit to run the full
+        test suite before re-verifying live behaviour. Do not guess — diff
+        against a reference first.
+
+  configuring:
+    description: >
+      Register the server and verify it works end-to-end in the real
+      environment. Steps: (1) identify all required environment variables
+      and add them to ~/.profile with export statements, (2) add the server
+      entry to opencode.json with the correct command and any env vars that
+      cannot come from the shell environment, (3) restart MCP servers,
+      (4) call at least one tool through the MCP interface to confirm the
+      server is live. Do not mark complete until a real tool call succeeds.
+    permissions:
+      - filesystem
+      - runtime
+    subagent:
+      prompt: >
+        You are registering a new MCP server in the live environment.
+        Steps: (1) identify all required env vars and add them to ~/.profile
+        as export statements, (2) add the server entry to opencode.json with
+        the correct bun command path and any env vars that do not flow from
+        the shell (e.g. API keys), (3) ask the user to restart MCP servers,
+        (4) call at least one real tool through the MCP interface and confirm
+        it returns a valid response. Do not transition to complete until a
+        real tool call succeeds.
+
+  complete:
+    description: >
+      Server is live, all tests pass, at least one real tool call confirmed.
+      This is a terminal read-only state. No further changes should be made
+      to the server without starting a new flow instance.
+    permissions: []
+    readOnly: true
+    subagent:
+      prompt: >
+        The server build is complete. This is a terminal state — no further
+        work should be done. Report the final status to the user: server name,
+        tools available, test results, and the confirmed live tool call that
+        verified the server is working. Do not modify any files from this state.
+
+# --- Transitions ---
+transitions:
+  - from: gathering
+    to: researching
+    guard: Server name, directory, and purpose confirmed by user
+
+  - from: researching
+    to: scaffolding
+    guard: Tool list, shared utility design, and auth pattern confirmed by user
+
+  - from: scaffolding
+    to: implementing_shared
+    guard: create_server succeeded, src/ stubs written, directory tree verified
+
+  - from: implementing_shared
+    to: implementing_tools
+    guard: Shared utilities implemented and their unit tests pass
+
+  - from: implementing_tools
+    to: validating_unit
+    guard: All planned tools have index.ts, purpose.md, and schema.json
+
+  - from: validating_unit
+    to: implementing_tools
+    guard: Unit test failures found — returning to fix
+
+  - from: validating_unit
+    to: validating_integration
+    guard: All unit tests pass
+
+  - from: validating_integration
+    to: implementing_tools
+    guard: Integration test failures found — returning to fix
+
+  - from: validating_integration
+    to: debugging
+    guard: Integration tests pass but manual live API verification fails
+
+  - from: validating_integration
+    to: configuring
+    guard: Integration tests pass and manual live verification succeeds
+
+  - from: debugging
+    to: validating_unit
+    guard: Fix applied — rerun full test suite from the beginning
+
+  - from: configuring
+    to: complete
+    guard: Server registered in opencode.json and at least one real tool call confirmed
+
+initialState: gathering
