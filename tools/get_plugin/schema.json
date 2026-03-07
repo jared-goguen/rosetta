@@ -1,0 +1,27 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name of the plugin to retrieve"
+      }
+    },
+    "required": ["name"],
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" },
+      "path": { "type": "string" },
+      "manifest": { "type": "object" },
+      "content": { "type": "string" },
+      "files": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "required": ["name", "path", "manifest", "content", "files"]
+  }
+}

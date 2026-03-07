@@ -1,0 +1,29 @@
+name: rosetta
+type: local
+location: /home/jared/source/rosetta
+description: Schema registry and MCP authoring server - the startup oracle for tool discovery
+tools:
+  - add_tool
+  - get_tool
+  - list_tools
+  - update_tool
+  - remove_tool
+  - add_command
+  - get_command
+  - list_commands
+  - update_command
+  - remove_command
+  - add_plugin
+  - get_plugin
+  - list_plugins
+  - update_plugin
+  - remove_plugin
+  - enable_plugin
+  - disable_plugin
+  - get_schema
+  - validate
+  - create_server
+  - register_server
+  - list_servers
+  - get_server
+enabled: true

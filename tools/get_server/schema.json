@@ -1,0 +1,29 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name of the server to retrieve"
+      }
+    },
+    "required": ["name"],
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "name": {"type": "string"},
+      "type": {"type": "string", "enum": ["local", "remote"]},
+      "location": {"type": "string"},
+      "url": {"type": "string"},
+      "description": {"type": "string"},
+      "enabled": {"type": "boolean"},
+      "tools": {
+        "type": "array",
+        "items": {"type": "string"}
+      }
+    },
+    "required": ["name", "type", "enabled", "tools"]
+  }
+}

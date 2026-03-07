@@ -1,0 +1,15 @@
+{
+  "input": {
+    "type": "object", 
+    "properties": {
+      "name": { "type": "string" }
+    },
+    "required": ["name"],
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "object",
+    "properties": { "success": { "type": "boolean" } },
+    "required": ["success"]
+  }
+}

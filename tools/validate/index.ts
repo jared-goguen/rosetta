@@ -1,5 +1,5 @@
-import { validateTool, validateCommand, validatePlugin } from "../validator.js";
-import { getRoot } from "../scanner.js";
+import { validateTool, validateCommand, validatePlugin } from "../../src/validator.js";
+import { getRoot } from "../../src/scanner.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 
 export async function validate(input: { type: "tool" | "command" | "plugin"; name: string }) {

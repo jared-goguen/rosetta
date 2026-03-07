@@ -1,0 +1,35 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name of the command to create (becomes directory name)"
+      },
+      "content": {
+        "type": "string",
+        "description": "TypeScript source code for index.ts"
+      },
+      "description": {
+        "type": "string",
+        "description": "Human-readable description written to purpose.md"
+      },
+      "schema": {
+        "type": "object",
+        "description": "JSON Schema for command arguments"
+      }
+    },
+    "required": ["name", "content"],
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Full path to the created command directory"
+      }
+    },
+    "required": ["path"]
+  }
+}

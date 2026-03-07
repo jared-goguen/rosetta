@@ -1,0 +1,1 @@
+Update an existing command. Overwrites specific files (index.ts, purpose.md, schema.json) while leaving others untouched.

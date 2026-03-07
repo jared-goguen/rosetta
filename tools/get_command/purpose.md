@@ -1,0 +1,1 @@
+Return a command's full definition including source code, description, and argument schema.

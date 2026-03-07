@@ -1,0 +1,8 @@
+name: cloudflare
+type: remote
+url: https://mcp.cloudflare.com/mcp
+description: Cloudflare API access for account management and service configuration
+tools:
+  - search
+  - execute
+enabled: true

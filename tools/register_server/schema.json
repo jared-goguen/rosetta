@@ -1,0 +1,48 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Server identifier (e.g., 'gutenberg')"
+      },
+      "type": {
+        "type": "string",
+        "enum": ["local", "remote"],
+        "description": "How the server is accessed"
+      },
+      "location": {
+        "type": "string",
+        "description": "File path for local servers"
+      },
+      "url": {
+        "type": "string",
+        "description": "URL for remote servers"
+      },
+      "description": {
+        "type": "string",
+        "description": "What the server does"
+      },
+      "tools": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Tool names provided by this server"
+      },
+      "enabled": {
+        "type": "boolean",
+        "description": "Whether the server is active",
+        "default": true
+      }
+    },
+    "required": ["name", "type", "tools"],
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "success": {"type": "boolean"},
+      "server": {"type": "object"}
+    },
+    "required": ["success", "server"]
+  }
+}

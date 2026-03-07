@@ -23,7 +23,7 @@ const mockPlugin: PluginRecord = {
 
 describe("generateBundle", () => {
   test("maps tool records to definitions, stripping source content", () => {
-    const bundle = generateBundle([mockTool], [], []);
+    const bundle = generateBundle([mockTool], [], [], []);
     expect(bundle.tools[0]).toMatchObject({ name: "foo", description: "does foo" });
     expect((bundle.tools[0] as any).content).toBeUndefined();
     expect((bundle.tools[0] as any).path).toBeUndefined();
@@ -31,12 +31,12 @@ describe("generateBundle", () => {
 
   test("sets schema to null when tool has no schema", () => {
     const bare: ToolRecord = { name: "bare", path: "/x", content: "x" };
-    const bundle = generateBundle([bare], [], []);
+    const bundle = generateBundle([bare], [], [], []);
     expect(bundle.tools[0].schema).toBeNull();
   });
 
   test("maps plugin manifest fields correctly", () => {
-    const bundle = generateBundle([], [], [mockPlugin]);
+    const bundle = generateBundle([], [], [mockPlugin], []);
     expect(bundle.plugins[0]).toMatchObject({
       name: "my-plugin",
       version: "1.2.3",
@@ -46,16 +46,17 @@ describe("generateBundle", () => {
   });
 
   test("sets version and generatedAt", () => {
-    const bundle = generateBundle([], [], []);
+    const bundle = generateBundle([], [], [], []);
     expect(bundle.version).toBe("1");
     expect(new Date(bundle.generatedAt).getTime()).not.toBeNaN();
   });
 
   test("empty inputs produce empty arrays", () => {
-    const bundle = generateBundle([], [], []);
+    const bundle = generateBundle([], [], [], []);
     expect(bundle.tools).toEqual([]);
     expect(bundle.commands).toEqual([]);
     expect(bundle.plugins).toEqual([]);
+    expect(bundle.servers).toEqual([]);
   });
 });
 
@@ -63,7 +64,7 @@ describe("writeBundle", () => {
   test("writes valid JSON to rosetta.schema.json", async () => {
     const root = await makeRoot();
     try {
-      const bundle = generateBundle([mockTool], [], []);
+      const bundle = generateBundle([mockTool], [], [], []);
       await writeBundle(bundle, root);
       const written = JSON.parse(await readFile(join(root, "rosetta.schema.json"), "utf8"));
       expect(written.version).toBe("1");
@@ -76,7 +77,7 @@ describe("writeBundle", () => {
   test("output is 2-space indented", async () => {
     const root = await makeRoot();
     try {
-      const bundle = generateBundle([], [], []);
+      const bundle = generateBundle([], [], [], []);
       await writeBundle(bundle, root);
       const raw = await readFile(join(root, "rosetta.schema.json"), "utf8");
       expect(raw).toContain("  \"version\"");

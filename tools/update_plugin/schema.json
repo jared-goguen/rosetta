@@ -1,0 +1,18 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" },
+      "content": { "type": "string" },
+      "manifest": { "type": "object" },
+      "files": { "type": "object", "additionalProperties": { "type": "string" } }
+    },
+    "required": ["name"],
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "object",
+    "properties": { "success": { "type": "boolean" } },
+    "required": ["success"]
+  }
+}

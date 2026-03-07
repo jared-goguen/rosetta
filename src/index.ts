@@ -1,6 +1,6 @@
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { createServer } from "./server.js";
+import { startServer } from "../lib/serve.js";
 
-const server = createServer();
-const transport = new StdioServerTransport();
-await server.connect(transport);
+await startServer({
+  name: "rosetta",
+  version: "0.1.0",
+});

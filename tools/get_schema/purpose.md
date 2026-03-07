@@ -1,0 +1,1 @@
+Return the full Rosetta schema bundle. This is what agents embed at startup to know the full capability surface of the ecosystem.

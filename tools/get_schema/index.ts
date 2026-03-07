@@ -1,5 +1,5 @@
-import { rebuildBundle } from "../bundle.js";
-import { getRoot } from "../scanner.js";
+import { rebuildBundle } from "../../src/bundle.js";
+import { getRoot } from "../../src/scanner.js";
 
 export async function getSchema() {
   const root = getRoot();

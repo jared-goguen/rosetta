@@ -18,12 +18,23 @@ export interface PluginDefinition {
   enabled: boolean;
 }
 
+export interface ServerDefinition {
+  name: string;
+  type: "local" | "remote";
+  location?: string;
+  url?: string;
+  description?: string;
+  tools: string[];
+  enabled: boolean;
+}
+
 export interface RosettaSchema {
   version: string;
   generatedAt: string;
   tools: ToolDefinition[];
   commands: CommandDefinition[];
   plugins: PluginDefinition[];
+  servers: ServerDefinition[];
 }
 
 export interface PluginManifest {
@@ -57,6 +68,12 @@ export interface PluginRecord {
   manifest: PluginManifest;
   content: string;
   files: string[];
+}
+
+export interface ServerRecord {
+  name: string;
+  path: string;
+  metadata: ServerDefinition;
 }
 
 export interface ValidationResult {

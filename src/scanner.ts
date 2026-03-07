@@ -1,6 +1,7 @@
 import { join } from "path";
 import { readdir, readFile, stat } from "fs/promises";
-import type { ToolRecord, CommandRecord, PluginRecord, PluginManifest } from "./types.js";
+import { parse as parseYAML } from "yaml";
+import type { ToolRecord, CommandRecord, PluginRecord, PluginManifest, ServerRecord, ServerDefinition } from "./types.js";
 
 export function getRoot(): string {
   return process.env.ROSETTA_ROOT ?? process.cwd();
@@ -109,6 +110,28 @@ export async function scanPlugins(root = getRoot()): Promise<PluginRecord[]> {
     const hasManifest = await exists(join(dir, e.name, "manifest.json"));
     if (!hasEntry || !hasManifest) continue;
     results.push(await readPlugin(e.name, root));
+  }
+  return results;
+}
+
+// ── Servers ───────────────────────────────────────────────────────────────────
+
+export async function readServer(name: string, root = getRoot()): Promise<ServerRecord> {
+  const serverPath = join(root, "servers", `${name}.yaml`);
+  const content = await readFile(serverPath, "utf8");
+  const metadata = parseYAML(content) as ServerDefinition;
+  return { name, path: serverPath, metadata };
+}
+
+export async function scanServers(root = getRoot()): Promise<ServerRecord[]> {
+  const dir = join(root, "servers");
+  if (!await exists(dir)) return [];
+  const entries = await readdir(dir, { withFileTypes: true });
+  const results: ServerRecord[] = [];
+  for (const e of entries) {
+    if (!e.isFile() || !e.name.endsWith(".yaml")) continue;
+    const name = e.name.replace(/\.yaml$/, "");
+    results.push(await readServer(name, root));
   }
   return results;
 }

@@ -1,0 +1,11 @@
+name: grounder
+type: local
+location: /home/jared/source/grounder/src/index.ts
+description: Tool analytics and performance tracking - analyzes tool usage,
+  efficiency, and session history
+tools:
+  - analyze_efficiency
+  - get_session_summary
+  - get_tool_history
+  - get_tool_stats
+enabled: true

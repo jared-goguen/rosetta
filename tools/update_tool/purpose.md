@@ -1,0 +1,1 @@
+Update an existing tool. Overwrites specific files (index.ts, purpose.md, schema.json) while leaving others untouched. Performs partial schema merge for schema updates.

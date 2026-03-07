@@ -1,14 +1,15 @@
 import { join } from "path";
 import { writeFile } from "fs/promises";
-import { scanTools, scanCommands, scanPlugins, getRoot } from "./scanner.js";
-import type { ToolRecord, CommandRecord, PluginRecord, RosettaSchema, ToolDefinition, CommandDefinition, PluginDefinition } from "./types.js";
+import { scanTools, scanCommands, scanPlugins, scanServers, getRoot } from "./scanner.js";
+import type { ToolRecord, CommandRecord, PluginRecord, ServerRecord, RosettaSchema, ToolDefinition, CommandDefinition, PluginDefinition, ServerDefinition } from "./types.js";
 
 const SCHEMA_VERSION = "1";
 
 export function generateBundle(
   tools: ToolRecord[],
   commands: CommandRecord[],
-  plugins: PluginRecord[]
+  plugins: PluginRecord[],
+  servers: ServerRecord[]
 ): RosettaSchema {
   const toolDefs: ToolDefinition[] = tools.map(t => ({
     name: t.name,
@@ -30,12 +31,15 @@ export function generateBundle(
     enabled: p.manifest.enabled ?? true,
   }));
 
+  const serverDefs: ServerDefinition[] = servers.map(s => s.metadata);
+
   return {
     version: SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
     tools: toolDefs,
     commands: commandDefs,
     plugins: pluginDefs,
+    servers: serverDefs,
   };
 }
 
@@ -45,12 +49,13 @@ export async function writeBundle(schema: RosettaSchema, root: string): Promise<
 }
 
 export async function rebuildBundle(root = getRoot()): Promise<RosettaSchema> {
-  const [tools, commands, plugins] = await Promise.all([
+  const [tools, commands, plugins, servers] = await Promise.all([
     scanTools(root),
     scanCommands(root),
     scanPlugins(root),
+    scanServers(root),
   ]);
-  const schema = generateBundle(tools, commands, plugins);
+  const schema = generateBundle(tools, commands, plugins, servers);
   await writeBundle(schema, root);
   return schema;
 }

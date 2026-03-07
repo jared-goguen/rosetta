@@ -1,0 +1,1 @@
+Create a new command directory and populate it with the required files. Scaffolds index.ts, purpose.md (if description provided), and schema.json (if schema provided).

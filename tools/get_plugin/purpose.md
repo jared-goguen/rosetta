@@ -1,0 +1,1 @@
+Return a plugin's full definition including manifest, source code, and all files.

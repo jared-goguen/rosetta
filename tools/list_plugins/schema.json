@@ -1,0 +1,20 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "description": { "type": "string" },
+        "enabled": { "type": "boolean" }
+      },
+      "required": ["name", "version", "enabled"]
+    }
+  }
+}

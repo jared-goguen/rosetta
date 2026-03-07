@@ -72,7 +72,7 @@ rosetta.schema.json  # generated bundle — do not edit by hand
 3. Agents can discover servers via `rosetta_list_servers` and `rosetta_get_server`
 4. Cross-server tools use naming convention: `<server>_<tool>` (e.g., `gutenberg_render_page`)
 
-**Currently registered servers:** rosetta, gutenberg, flowbot, cf-pages, cloudflare, github
+**Currently registered servers:** rosetta, gutenberg, flowbot, pages, cloudflare, github
 
 ## Flow-Driven Development
 

@@ -1,0 +1,1 @@
+Return a lightweight summary of all discovered commands - names and descriptions only, no source content.
