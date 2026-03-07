@@ -76,29 +76,34 @@ rosetta.schema.json  # generated bundle — do not edit by hand
 
 ## Flow-Driven Development
 
-New servers should be built using the `new_server.yaml` flow for structured, permission-enforced development.
+New servers should be built using the `new_server.yaml` flow for structured, guided development.
 
-### Activation
+### How to Use the Flow
 
-```
-1. flowbot_start_flow { path: "/home/jared/source/rosetta/flows/new_server.yaml" }
-2. write instancePath to /home/jared/source/.opencode/flowguard.active
-3. FlowGuard plugin enforces permissions for each state automatically
-```
+The `new_server.yaml` flow provides a step-by-step workflow for building MCP servers. It is **advisory** — there is no enforcement, only guidance.
 
-### State Permissions Summary
+**Usage:**
+1. Call `flowbot_start_flow { path: "/home/jared/source/rosetta/flows/new_server.yaml" }`
+2. This returns an `instancePath` — save this for later
+3. Call `flowbot_get_state { instancePath }` to see the current state, guidance, and recommended tools
+4. Follow the guidance in the `guidance` field
+5. When ready to move to the next state, call `flowbot_transition { instancePath, toState: "next-state-name" }`
 
-| State | What you can do |
+### Advisory Tool Lists per State
+
+Each state recommends a set of tools. These are suggestions, not restrictions:
+
+| State | Recommended tools |
 |---|---|
-| `gathering` | Read Rosetta schemas only — no code changes |
-| `researching` | Read + filesystem + bash for exploration |
-| `scaffolding` | `rosetta_create_server` + read + filesystem |
-| `implementing_shared` | Rosetta read/write + filesystem + bash |
-| `implementing_tools` | Rosetta read/write + filesystem (no bash) |
-| `validating_unit` | Read + filesystem + bash (`bun test tests/unit`) |
-| `validating_integration` | Read + filesystem + bash (`bun test tests/integration`) |
-| `debugging` | Rosetta read/write + filesystem + bash |
-| `configuring` | Filesystem + bash (register in opencode.json) |
-| `complete` | Nothing — read-only terminal state |
+| `gathering` | `rosetta_get_schema`, `rosetta_list_tools`, `read`, `question` |
+| `researching` | `read`, `bash`, `webfetch`, `glob`, `grep` |
+| `scaffolding` | `rosetta_create_server`, `read`, `write`, `glob` |
+| `implementing_shared` | `rosetta_read/write tools`, `read`, `write`, `edit`, `bash` |
+| `implementing_tools` | `rosetta_read/write tools`, `read`, `write`, `edit` |
+| `validating_unit` | `read`, `bash` (`bun test tests/unit`) |
+| `validating_integration` | `read`, `bash` (`bun test tests/integration`) |
+| `debugging` | `rosetta_read/write tools`, `read`, `write`, `edit`, `bash` |
+| `configuring` | `read`, `write`, `edit`, `bash` |
+| `complete` | Terminal state — read-only |
 
-Each state also has a `subagent.prompt` with detailed instructions for what to do and what to confirm before transitioning.
+Each state also has a detailed `guidance` field with instructions for what to do and what to confirm before transitioning.
