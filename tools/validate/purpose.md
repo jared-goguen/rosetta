@@ -1,1 +1,0 @@
-Validate an artifact's structure and schema. Checks that required files are present, JSON is parseable, and schemas conform to JSON Schema specification.

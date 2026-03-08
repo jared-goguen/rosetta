@@ -1,4 +1,4 @@
-import { startServer } from "../lib/serve.js";
+import { startServer } from "mcp-core";
 
 await startServer({
   name: "rosetta",

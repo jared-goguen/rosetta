@@ -1,0 +1,297 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "description": "Semantic type registry for the monorepo ecosystem. Provides higher-level type abstractions beyond base JSON Schema types.",
+  "types": {
+    "FilePath": {
+      "description": "Absolute or relative filesystem path",
+      "base": "string",
+      "validation": {
+        "pattern": "^(/|~/|\\./|\\.\\./).*",
+        "examples": [
+          "/home/user/project",
+          "~/workspace",
+          "./src/index.ts",
+          "../dist"
+        ]
+      },
+      "related": [
+        "DirectoryPath",
+        "AbsolutePath",
+        "RelativePath"
+      ]
+    },
+    "DirectoryPath": {
+      "description": "Path to a directory",
+      "base": "string",
+      "validation": {
+        "pattern": "^(/|~/|\\./|\\.\\./).*[^/]$",
+        "examples": [
+          "/home/user",
+          "~/projects",
+          "./src"
+        ]
+      }
+    },
+    "AbsolutePath": {
+      "description": "Absolute filesystem path starting with / or ~",
+      "base": "string",
+      "validation": {
+        "pattern": "^(/|~/).*",
+        "examples": [
+          "/home/user/file.txt",
+          "~/workspace"
+        ]
+      }
+    },
+    "RelativePath": {
+      "description": "Relative filesystem path",
+      "base": "string",
+      "validation": {
+        "pattern": "^\\./.*|\\.\\..*|[^/~].*",
+        "examples": [
+          "./src",
+          "../dist",
+          "tools/my-tool"
+        ]
+      }
+    },
+    "GitHubURL": {
+      "description": "GitHub repository URL (HTTPS or SSH)",
+      "base": "string",
+      "validation": {
+        "pattern": "^(https://github\\.com/|git@github\\.com:)[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+(\\.git)?$",
+        "examples": [
+          "git@github.com:user/repo.git",
+          "https://github.com/user/repo"
+        ]
+      }
+    },
+    "ProjectName": {
+      "description": "Valid project/package name (lowercase, hyphenated)",
+      "base": "string",
+      "validation": {
+        "pattern": "^[a-z][a-z0-9-]*$",
+        "examples": [
+          "my-server",
+          "mcp-tools",
+          "opencode-plugin"
+        ]
+      }
+    },
+    "ToolName": {
+      "description": "MCP tool identifier (snake_case)",
+      "base": "string",
+      "validation": {
+        "pattern": "^[a-z][a-z0-9_]*$",
+        "examples": [
+          "render_page",
+          "create_server",
+          "list_tools"
+        ]
+      }
+    },
+    "GlobPattern": {
+      "description": "File glob pattern for matching",
+      "base": "string",
+      "validation": {
+        "examples": [
+          "**/*.ts",
+          "src/**",
+          "*.{js,ts}"
+        ]
+      }
+    },
+    "RegexPattern": {
+      "description": "Regular expression pattern",
+      "base": "string",
+      "validation": {
+        "examples": [
+          "^function\\s+\\w+",
+          "import.*from"
+        ]
+      }
+    },
+    "ResourceName": {
+      "description": "Kubernetes/Docker resource identifier",
+      "base": "string",
+      "validation": {
+        "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+        "examples": [
+          "my-pod",
+          "nginx-deployment",
+          "redis-service"
+        ]
+      }
+    },
+    "ContainerID": {
+      "description": "Docker container identifier (ID or name)",
+      "base": "string",
+      "validation": {
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]*$",
+        "examples": [
+          "nginx",
+          "abc123def456",
+          "my-container"
+        ]
+      }
+    },
+    "ImageName": {
+      "description": "Docker image name with optional tag",
+      "base": "string",
+      "validation": {
+        "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*(:[a-z0-9._-]+)?$",
+        "examples": [
+          "nginx:latest",
+          "node:18",
+          "my-app"
+        ]
+      }
+    },
+    "KubernetesNamespace": {
+      "description": "Kubernetes namespace",
+      "base": "string",
+      "validation": {
+        "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+        "examples": [
+          "default",
+          "kube-system",
+          "my-namespace"
+        ]
+      },
+      "default": "default"
+    },
+    "ResourceType": {
+      "description": "Kubernetes resource type",
+      "base": "string",
+      "validation": {
+        "enum": [
+          "pod",
+          "service",
+          "deployment",
+          "configmap",
+          "secret",
+          "ingress",
+          "namespace"
+        ],
+        "examples": [
+          "pod",
+          "deployment"
+        ]
+      }
+    },
+    "CommandString": {
+      "description": "Shell command to execute",
+      "base": "string",
+      "validation": {
+        "examples": [
+          "ls -la",
+          "npm install",
+          "git status"
+        ]
+      }
+    },
+    "YAMLString": {
+      "description": "YAML-formatted content",
+      "base": "string",
+      "validation": {
+        "examples": [
+          "page:\\n  sections: []",
+          "apiVersion: v1\\nkind: Pod"
+        ]
+      }
+    },
+    "JSONString": {
+      "description": "JSON-formatted content",
+      "base": "string",
+      "validation": {
+        "examples": [
+          "{\"key\": \"value\"}",
+          "[{\"id\": 1}]"
+        ]
+      }
+    },
+    "HTMLString": {
+      "description": "HTML document or fragment",
+      "base": "string",
+      "validation": {
+        "examples": [
+          "<!DOCTYPE html><html>...</html>",
+          "<div>content</div>"
+        ]
+      }
+    },
+    "PortNumber": {
+      "description": "Network port number",
+      "base": "integer",
+      "validation": {
+        "minimum": 1,
+        "maximum": 65535,
+        "examples": [
+          8080,
+          3000,
+          443
+        ]
+      }
+    },
+    "TimeoutMilliseconds": {
+      "description": "Timeout duration in milliseconds",
+      "base": "integer",
+      "validation": {
+        "minimum": 0,
+        "examples": [
+          5000,
+          30000,
+          60000
+        ]
+      }
+    },
+    "LineNumber": {
+      "description": "Line number in a file",
+      "base": "integer",
+      "validation": {
+        "minimum": 1,
+        "examples": [
+          1,
+          42,
+          100
+        ]
+      }
+    },
+    "WriteMode": {
+      "description": "File write operation mode",
+      "base": "string",
+      "validation": {
+        "enum": [
+          "overwrite",
+          "append",
+          "insert"
+        ],
+        "default": "overwrite"
+      }
+    },
+    "InsertLocation": {
+      "description": "Where to insert content in file",
+      "base": "string",
+      "validation": {
+        "enum": [
+          "start",
+          "end"
+        ],
+        "default": "end"
+      }
+    },
+    "LogFormat": {
+      "description": "Output format for structured data",
+      "base": "string",
+      "validation": {
+        "enum": [
+          "json",
+          "yaml",
+          "table"
+        ],
+        "default": "json"
+      }
+    }
+  }
+}

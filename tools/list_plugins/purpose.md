@@ -1,1 +1,0 @@
-Return a lightweight summary of all discovered plugins - names, versions, descriptions, and enabled status.

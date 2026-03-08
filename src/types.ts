@@ -28,13 +28,19 @@ export interface ServerDefinition {
   enabled: boolean;
 }
 
+export interface EnhancedToolDefinition {
+  name: string;
+  server: string;
+  description?: string;
+  schema: { input: object; output: object };
+}
+
 export interface RosettaSchema {
   version: string;
   generatedAt: string;
-  tools: ToolDefinition[];
-  commands: CommandDefinition[];
-  plugins: PluginDefinition[];
-  servers: ServerDefinition[];
+  typeRegistry?: Record<string, any>;
+  tools: EnhancedToolDefinition[];
+  servers: ServerRecord[];
 }
 
 export interface PluginManifest {
@@ -48,10 +54,9 @@ export interface PluginManifest {
 
 export interface ToolRecord {
   name: string;
-  path: string;
-  content: string;
+  server: string;
   description?: string;
-  schema?: { input: object; output: object };
+  schema: { input: object; output: object };
 }
 
 export interface CommandRecord {
@@ -72,8 +77,8 @@ export interface PluginRecord {
 
 export interface ServerRecord {
   name: string;
-  path: string;
-  metadata: ServerDefinition;
+  type: "local" | "remote";
+  description?: string;
 }
 
 export interface ValidationResult {

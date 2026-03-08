@@ -1,1 +1,0 @@
-Remove a command directory and all its contents. Permanently deletes the command from the filesystem and removes it from the schema bundle.

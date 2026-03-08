@@ -1,10 +1,9 @@
 import { join } from "path";
 import { readdir, readFile, stat } from "fs/promises";
-import { parse as parseYAML } from "yaml";
-import type { ToolRecord, CommandRecord, PluginRecord, PluginManifest, ServerRecord, ServerDefinition } from "./types.js";
+import type { ToolRecord, ServerRecord } from "./types.js";
 
 export function getRoot(): string {
-  return process.env.ROSETTA_ROOT ?? process.cwd();
+  return process.env.ROSETTA_ROOT ?? "/home/jared/source";
 }
 
 async function exists(p: string): Promise<boolean> {
@@ -18,120 +17,238 @@ async function readOptional(p: string): Promise<string | undefined> {
 async function parseJsonOptional(p: string): Promise<object | undefined> {
   const text = await readOptional(p);
   if (!text) return undefined;
-  return JSON.parse(text);
+  try { return JSON.parse(text); } catch { return undefined; }
 }
 
-// ── Tools ─────────────────────────────────────────────────────────────────────
+/**
+ * Scan a single tool using convention structure.
+ * Convention: tools/<name>/index.ts, schema.json, purpose.md
+ */
+async function readConventionTool(
+  name: string,
+  toolDir: string,
+  serverName: string
+): Promise<ToolRecord | null> {
+  const indexPath = join(toolDir, "index.ts");
+  const schemaPath = join(toolDir, "schema.json");
+  const purposePath = join(toolDir, "purpose.md");
 
-export async function readTool(name: string, root = getRoot()): Promise<ToolRecord> {
-  const dir = join(root, "tools", name);
-  const entryPath = join(dir, "index.ts");
-  const content = await readFile(entryPath, "utf8");
-  const description = await readOptional(join(dir, "purpose.md"));
-  const schemaRaw = await parseJsonOptional(join(dir, "schema.json")) as any;
-  const schema = schemaRaw ? { input: schemaRaw.input ?? {}, output: schemaRaw.output ?? {} } : undefined;
-  return { name, path: dir, content, description, schema };
+  if (!await exists(indexPath)) return null;
+
+  const description = await readOptional(purposePath);
+  const schema = await parseJsonOptional(schemaPath) as any;
+
+  return {
+    name,
+    server: serverName,
+    description: description?.split("\n")[0],  // First line only
+    schema: schema ? { 
+      input: schema.input ?? { type: "object" }, 
+      output: schema.output ?? { type: "object" } 
+    } : { input: { type: "object" }, output: { type: "object" } }
+  };
 }
 
-export async function scanTools(root = getRoot()): Promise<ToolRecord[]> {
-  const dir = join(root, "tools");
-  if (!await exists(dir)) return [];
-  const entries = await readdir(dir, { withFileTypes: true });
+/**
+ * Scan all tools in a convention-based server (rosetta, gutenberg, flowbot, grounder).
+ * Structure: server/tools/<name>/
+ */
+async function scanConventionServer(
+  serverPath: string,
+  serverName: string
+): Promise<ToolRecord[]> {
+  const toolsDir = join(serverPath, "tools");
+  if (!await exists(toolsDir)) return [];
+
+  const entries = await readdir(toolsDir, { withFileTypes: true });
   const results: ToolRecord[] = [];
-  for (const e of entries) {
-    if (!e.isDirectory()) continue;
-    const entryPath = join(dir, e.name, "index.ts");
-    if (!await exists(entryPath)) continue;
-    results.push(await readTool(e.name, root));
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const tool = await readConventionTool(
+      entry.name,
+      join(toolsDir, entry.name),
+      serverName
+    );
+    if (tool) results.push(tool);
   }
+
   return results;
 }
 
-// ── Commands ──────────────────────────────────────────────────────────────────
+/**
+ * Scan all convention-based servers in the monorepo.
+ */
+async function scanConventionServers(root: string): Promise<ToolRecord[]> {
+  const servers = [
+    { name: "rosetta", path: join(root, "rosetta") },
+    { name: "gutenberg", path: join(root, "gutenberg") },
+    { name: "flowbot", path: join(root, "flowbot") },
+    { name: "grounder", path: join(root, "grounder") }
+  ];
 
-export async function readCommand(name: string, root = getRoot()): Promise<CommandRecord> {
-  const dir = join(root, "commands", name);
-  const entryPath = join(dir, "index.ts");
-  const content = await readFile(entryPath, "utf8");
-  const description = await readOptional(join(dir, "purpose.md"));
-  const schema = await parseJsonOptional(join(dir, "schema.json"));
-  return { name, path: dir, content, description, schema };
-}
+  const allTools: ToolRecord[] = [];
 
-export async function scanCommands(root = getRoot()): Promise<CommandRecord[]> {
-  const dir = join(root, "commands");
-  if (!await exists(dir)) return [];
-  const entries = await readdir(dir, { withFileTypes: true });
-  const results: CommandRecord[] = [];
-  for (const e of entries) {
-    if (!e.isDirectory()) continue;
-    const entryPath = join(dir, e.name, "index.ts");
-    if (!await exists(entryPath)) continue;
-    results.push(await readCommand(e.name, root));
-  }
-  return results;
-}
-
-// ── Plugins ───────────────────────────────────────────────────────────────────
-
-async function listFilesRecursive(dir: string, base: string): Promise<string[]> {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const files: string[] = [];
-  for (const e of entries) {
-    const full = join(dir, e.name);
-    const rel = join(base, e.name);
-    if (e.isDirectory()) {
-      files.push(...await listFilesRecursive(full, rel));
-    } else {
-      files.push(rel);
+  for (const server of servers) {
+    if (await exists(server.path)) {
+      const tools = await scanConventionServer(server.path, server.name);
+      allTools.push(...tools);
     }
   }
-  return files;
+
+  return allTools;
 }
 
-export async function readPlugin(name: string, root = getRoot()): Promise<PluginRecord> {
-  const dir = join(root, "plugins", name);
-  const manifestPath = join(dir, "manifest.json");
-  const manifestText = await readFile(manifestPath, "utf8");
-  const manifest: PluginManifest = JSON.parse(manifestText);
-  const content = await readFile(join(dir, "index.ts"), "utf8");
-  const files = await listFilesRecursive(dir, "");
-  return { name, path: dir, manifest, content, files };
-}
+/**
+ * Scan export-based server (packages/mcp-server-*).
+ * Structure: tools/*.ts with exported *Schema objects
+ */
+async function scanExportServer(
+  serverPath: string,
+  serverName: string
+): Promise<ToolRecord[]> {
+  const toolsDir = join(serverPath, "tools");
+  if (!await exists(toolsDir)) return [];
 
-export async function scanPlugins(root = getRoot()): Promise<PluginRecord[]> {
-  const dir = join(root, "plugins");
-  if (!await exists(dir)) return [];
-  const entries = await readdir(dir, { withFileTypes: true });
-  const results: PluginRecord[] = [];
-  for (const e of entries) {
-    if (!e.isDirectory()) continue;
-    const hasEntry = await exists(join(dir, e.name, "index.ts"));
-    const hasManifest = await exists(join(dir, e.name, "manifest.json"));
-    if (!hasEntry || !hasManifest) continue;
-    results.push(await readPlugin(e.name, root));
+  const entries = await readdir(toolsDir, { withFileTypes: true });
+  const results: ToolRecord[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".ts")) continue;
+
+    // Tool name is filename without .ts extension
+    const toolName = entry.name.replace(/\.ts$/, "");
+    const content = await readOptional(join(toolsDir, entry.name));
+    
+    if (!content) continue;
+
+    // Extract schema from exported *Schema object
+    const schemaMatch = content.match(/export\s+(?:const|let)\s+(\w+)Schema\s*=\s*({[\s\S]*?}(?=\n\nexport|$))/);
+    let schema: any = undefined;
+
+    if (schemaMatch) {
+      try {
+        // Very basic extraction - assumes valid JSON-like structure
+        const schemaStr = schemaMatch[2];
+        // Parse as much as we can
+        schema = JSON.parse(schemaStr);
+      } catch {
+        // If parsing fails, use default
+        schema = { input: { type: "object" }, output: { type: "object" } };
+      }
+    }
+
+    results.push({
+      name: toolName,
+      server: serverName,
+      description: undefined,  // Not available in export-based tools
+      schema: schema ? {
+        input: schema.inputSchema ?? schema.input ?? { type: "object" },
+        output: schema.outputSchema ?? schema.output ?? { type: "object" }
+      } : { input: { type: "object" }, output: { type: "object" } }
+    });
   }
+
   return results;
 }
 
-// ── Servers ───────────────────────────────────────────────────────────────────
+/**
+ * Scan all export-based servers in packages/.
+ */
+async function scanExportServers(root: string): Promise<ToolRecord[]> {
+  const packagesDir = join(root, "packages");
+  if (!await exists(packagesDir)) return [];
 
-export async function readServer(name: string, root = getRoot()): Promise<ServerRecord> {
-  const serverPath = join(root, "servers", `${name}.yaml`);
-  const content = await readFile(serverPath, "utf8");
-  const metadata = parseYAML(content) as ServerDefinition;
-  return { name, path: serverPath, metadata };
+  const entries = await readdir(packagesDir, { withFileTypes: true });
+  const allTools: ToolRecord[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.startsWith("mcp-server-")) continue;
+    
+    const serverName = entry.name.replace("mcp-server-", "");
+    const serverPath = join(packagesDir, entry.name);
+    const tools = await scanExportServer(serverPath, serverName);
+    allTools.push(...tools);
+  }
+
+  return allTools;
 }
 
+/**
+ * Scan all servers and return unified server registry.
+ */
+async function scanServerMetadata(root: string): Promise<ServerRecord[]> {
+  const serverNames = new Set<string>();
+  
+  // Convention-based
+  for (const name of ["rosetta", "gutenberg", "flowbot", "grounder"]) {
+    const path = join(root, name);
+    if (await exists(path)) serverNames.add(name);
+  }
+
+  // Export-based
+  const packagesDir = join(root, "packages");
+  if (await exists(packagesDir)) {
+    const entries = await readdir(packagesDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && entry.name.startsWith("mcp-server-")) {
+        serverNames.add(entry.name.replace("mcp-server-", ""));
+      }
+    }
+  }
+
+  // Get tool counts for each server
+  const servers: ServerRecord[] = [];
+  for (const name of Array.from(serverNames).sort()) {
+    // Tool count will be calculated separately in bundle.ts
+    servers.push({
+      name,
+      type: ["rosetta", "gutenberg", "flowbot", "grounder"].includes(name) ? "local" : "local",
+      description: ""  // Can be enriched later
+    });
+  }
+
+  return servers;
+}
+
+/**
+ * Main scanning function: scan entire monorepo for tools.
+ */
+export async function scanAllTools(root = getRoot()): Promise<ToolRecord[]> {
+  const conventionTools = await scanConventionServers(root);
+  const exportTools = await scanExportServers(root);
+  
+  // Merge and deduplicate by server + name
+  const toolMap = new Map<string, ToolRecord>();
+  
+  for (const tool of [...conventionTools, ...exportTools]) {
+    const key = `${tool.server}:${tool.name}`;
+    // Convention tools take precedence
+    if (!toolMap.has(key) || tool.schema) {
+      toolMap.set(key, tool);
+    }
+  }
+  
+  return Array.from(toolMap.values()).sort((a, b) => {
+    if (a.server !== b.server) return a.server.localeCompare(b.server);
+    return a.name.localeCompare(b.name);
+  });
+}
+
+/**
+ * Get server metadata.
+ */
 export async function scanServers(root = getRoot()): Promise<ServerRecord[]> {
-  const dir = join(root, "servers");
-  if (!await exists(dir)) return [];
-  const entries = await readdir(dir, { withFileTypes: true });
-  const results: ServerRecord[] = [];
-  for (const e of entries) {
-    if (!e.isFile() || !e.name.endsWith(".yaml")) continue;
-    const name = e.name.replace(/\.yaml$/, "");
-    results.push(await readServer(name, root));
-  }
-  return results;
+  return scanServerMetadata(root);
+}
+
+/**
+ * Read type registry.
+ */
+export async function readTypeRegistry(root = getRoot()): Promise<Record<string, any>> {
+  const registryPath = join(root, "rosetta", "types.json");
+  const content = await readOptional(registryPath);
+  if (!content) return {};
+  const parsed = JSON.parse(content);
+  return parsed.types ?? {};
 }

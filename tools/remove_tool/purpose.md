@@ -1,1 +1,0 @@
-Remove a tool directory and all its contents. Permanently deletes the tool from the filesystem and removes it from the schema bundle.

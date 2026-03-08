@@ -1,1 +1,0 @@
-Return a lightweight summary of all discovered tools - names and descriptions only, no source content.

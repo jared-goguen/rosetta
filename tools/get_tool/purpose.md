@@ -1,1 +1,0 @@
-Return a tool's full definition including source code, description, and schema.

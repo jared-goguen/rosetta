@@ -1,13 +1,12 @@
 {
   "name": "rosetta",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "type": "module",
+  "description": "Semantic type registry and schema bundler for the monorepo",
   "scripts": {
-    "start": "bun run src/index.ts",
-    "test": "bun test"
+    "build": "tsc"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
     "ajv": "^8.18.0",
     "yaml": "^2.8.2"
   },
