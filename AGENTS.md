@@ -166,6 +166,99 @@ bun run src/index.ts
 ```
 This starts the MCP server on stdio. Use client libraries to test.
 
+## MCP Dependencies Convention
+
+Some tools use external MCPs (like Cloudflare) that Rosetta can't directly integrate.
+
+### Declaration
+
+Tools that depend on external MCPs should declare this in `schema.json`:
+
+```json
+{
+  "input": { ... },
+  "output": { ... },
+  "mcp_dependencies": {
+    "cloudflare": {
+      "required": true,
+      "description": "Cloudflare Pages API",
+      "operations": [
+        "POST /accounts/{account_id}/pages/projects/{project_name}/deployments"
+      ],
+      "environment": {
+        "CLOUDFLARE_ACCOUNT_ID": "Your account ID",
+        "CLOUDFLARE_API_TOKEN": "API token with Pages write"
+      },
+      "documentation": "https://..."
+    }
+  }
+}
+```
+
+### Documentation
+
+Tools with external dependencies should add an "MCP Dependencies" section to `AGENTS.md`:
+
+```markdown
+## MCP Dependencies
+
+**Requires:** Cloudflare MCP
+
+This tool uses the Cloudflare Pages Direct Upload API.
+
+### Configuration
+- Set `CLOUDFLARE_ACCOUNT_ID` environment variable
+- Set `CLOUDFLARE_API_TOKEN` environment variable
+
+### Operations Used
+- `POST /accounts/{account_id}/pages/projects/{project_name}/deployments`
+
+### Failure Modes
+- If Cloudflare MCP not available: "Cloudflare MCP not found"
+- If credentials missing: "CLOUDFLARE_API_TOKEN not set"
+```
+
+### Code Documentation
+
+Add JSDoc `@requires` annotations to handlers:
+
+```typescript
+/**
+ * Deploy to Cloudflare Pages.
+ * 
+ * @requires cloudflare MCP
+ * @requires CLOUDFLARE_ACCOUNT_ID environment variable
+ * @requires CLOUDFLARE_API_TOKEN environment variable
+ */
+export async function handler(input: Record<string, unknown>) {
+  // ...
+}
+```
+
+### Agent Discovery
+
+Agents can check for MCP dependencies before using a tool:
+
+```python
+def can_use_tool(tool_name, available_mcps):
+    schema = rosetta_schema["tools"][tool_name]
+    deps = schema.get("mcp_dependencies", {})
+    
+    for mcp_name, dep in deps.items():
+        if dep["required"] and mcp_name not in available_mcps:
+            return False  # Tool requires MCP that's not available
+    
+    return True
+```
+
+### Benefits
+
+- **Machine-readable** - Agents can parse dependencies
+- **Explicit** - No guessing about external requirements
+- **Helpful errors** - Tools can provide clear error messages
+- **Future-proof** - Works for any remote MCP
+- **Documented** - Three levels of documentation
+
 ## Troubleshooting
 
 **Schema doesn't include my tool?**

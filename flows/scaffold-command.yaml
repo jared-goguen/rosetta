@@ -1,0 +1,43 @@
+id: scaffold-command
+name: Scaffold MCP Command
+description: >
+  Add a slash command to an existing MCP server.
+  Commands are markdown files in the commands/ directory that define CLI-style interactions.
+
+steps:
+  - id: collect_inputs
+    focus: "Gather command details: server name, command name, description, and options"
+    done_when: "Required inputs collected: server_name, command_name, description"
+    suggest:
+      - question
+
+  - id: verify_server
+    focus: "Verify server exists at '{input.server_path}/{input.server_name}'"
+    done_when: "Server directory found and is valid MCP server"
+    suggest:
+      - scout_survey
+
+  - id: create_commands_dir
+    focus: "Ensure commands/ directory exists in server root"
+    done_when: "commands/ directory exists or created"
+    suggest:
+      - scout_blaze
+
+  - id: write_command_doc
+    focus: "Generate {input.command_name}.md with usage, options, examples, and purpose"
+    done_when: "Command markdown file created with comprehensive documentation"
+    suggest:
+      - write
+
+  - id: update_agents_md
+    focus: "Update server's AGENTS.md to reference the new command in Commands section"
+    done_when: "AGENTS.md updated with command reference"
+    suggest:
+      - read
+      - edit
+
+  - id: verify
+    focus: "Show command file and provide usage instructions"
+    done_when: "Command documented, referenced in AGENTS.md, usage shown"
+    suggest:
+      - read

@@ -1,0 +1,31 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "servers": {
+        "type": "array",
+        "description": "Optional: list of servers to check (e.g., ['flowbot', 'gutenberg']). If not provided, checks all known servers.",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "summary": {
+        "type": "string",
+        "description": "Summary of checks performed"
+      },
+      "report": {
+        "type": "string",
+        "description": "Human-readable consistency report"
+      },
+      "details": {
+        "type": "object",
+        "description": "Detailed results for each server"
+      }
+    }
+  }
+}

@@ -292,6 +292,76 @@
         ],
         "default": "json"
       }
+    },
+    "GutenbergSpecPath": {
+      "description": "Path to a Gutenberg page specification YAML file. Input to the Gutenberg rendering pipeline.",
+      "purpose": "Define page structure and content for rendering via validate_schema → render_page → snapshot_html → deploy_directory",
+      "base": "string",
+      "validation": {
+        "pattern": "^.*\\.yaml$",
+        "examples": [
+          "/home/jared/source/pages/specs/landing.yaml",
+          "pages/specs/showcase/homepage.yaml",
+          "/absolute/path/to/pages/specs/documentation.yaml"
+        ]
+      },
+      "related": [
+        "FilePath",
+        "YAMLString"
+      ],
+      "pipeline_position": "input"
+    },
+    "HTMLFilePath": {
+      "description": "Path to a rendered HTML document. Output from gutenberg_render_page, input to gutenberg_snapshot_html and pages_helper_deploy_directory.",
+      "purpose": "Represents a complete, ready-to-deploy HTML page with all styles and content embedded",
+      "base": "string",
+      "validation": {
+        "pattern": "^.*\\.html$",
+        "examples": [
+          "/home/jared/source/pages/rendered/landing.html",
+          "pages/rendered/homepage.html",
+          "/absolute/path/to/rendered/page.html"
+        ]
+      },
+      "related": [
+        "FilePath",
+        "HTMLString"
+      ],
+      "pipeline_position": "intermediate"
+    },
+    "ImageFilePath": {
+      "description": "Path to an image file (PNG, JPEG, etc.). Output from gutenberg_snapshot_html, used for QA and visual regression testing.",
+      "purpose": "Screenshot of rendered HTML for visual verification and quality assurance before deployment",
+      "base": "string",
+      "validation": {
+        "pattern": "^.*\\.(png|jpg|jpeg|gif|webp|svg)$",
+        "examples": [
+          "/home/jared/source/pages/snapshots/landing.png",
+          "pages/snapshots/screenshot.png",
+          "/absolute/path/to/snapshots/page-qa.png"
+        ]
+      },
+      "related": [
+        "FilePath"
+      ],
+      "pipeline_position": "intermediate"
+    },
+    "CloudflareURL": {
+      "description": "Live deployment URL on Cloudflare Pages. Output from pages_helper_deploy_directory.",
+      "purpose": "Represents a live, publicly accessible website deployed to Cloudflare Pages with HTTPS and global CDN",
+      "base": "string",
+      "validation": {
+        "pattern": "^https://[a-z0-9-]+\\.[a-z0-9.-]+\\.pages\\.dev/?$",
+        "examples": [
+          "https://1a174de1.opencode-pipeline-test.pages.dev",
+          "https://abc123.my-project.pages.dev/",
+          "https://landing.my-company.pages.dev"
+        ]
+      },
+      "related": [
+        "FilePath"
+      ],
+      "pipeline_position": "output"
     }
   }
 }

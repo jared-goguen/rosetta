@@ -1,0 +1,28 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "force": {
+        "type": "boolean",
+        "description": "Force rebuild even if no changes detected (default: false)"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string",
+        "description": "Rebuild status: 'success' or 'error'"
+      },
+      "report": {
+        "type": "string",
+        "description": "Human-readable rebuild report"
+      },
+      "details": {
+        "type": "object",
+        "description": "Detailed rebuild information"
+      }
+    }
+  }
+}

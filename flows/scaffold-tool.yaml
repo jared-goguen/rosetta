@@ -1,0 +1,56 @@
+id: scaffold-tool
+name: Scaffold MCP Tool
+description: >
+  Add a new tool to an existing MCP server with proper structure:
+  index.ts handler, schema.json, and AGENTS.md documentation.
+
+steps:
+  - id: collect_inputs
+    focus: "Gather tool details: server name, tool name, description, and parameters"
+    done_when: "Required inputs collected: server_name, tool_name, description"
+    suggest:
+      - question
+
+  - id: verify_server
+    focus: "Verify server exists at '{input.server_path}/{input.server_name}'"
+    done_when: "Server directory found and is valid MCP server"
+    suggest:
+      - scout_survey
+      - read
+
+  - id: create_tool_dir
+    focus: "Create tool directory: {input.server_path}/{input.server_name}/tools/{input.tool_name}"
+    done_when: "Tool directory created successfully"
+    suggest:
+      - scout_blaze
+
+  - id: write_handler
+    focus: "Generate index.ts with handler function signature and basic implementation"
+    done_when: "index.ts created with async handler function and proper return type"
+    suggest:
+      - write
+
+  - id: write_schema
+    focus: "Generate schema.json with input/output JSON schemas based on parameters"
+    done_when: "Valid schema.json created with input properties and output structure"
+    suggest:
+      - write
+
+  - id: write_docs
+    focus: "Generate AGENTS.md with tool purpose, usage, examples, and guidelines"
+    done_when: "Comprehensive AGENTS.md created with clear documentation"
+    suggest:
+      - write
+
+  - id: rebuild_schema
+    focus: "Run rosetta_rebuild to make new tool discoverable"
+    done_when: "rosetta_rebuild completes successfully"
+    suggest:
+      - rosetta_rebuild
+
+  - id: verify
+    focus: "Verify tool structure and provide usage example"
+    done_when: "All tool files created, schema rebuilt, usage example shown"
+    suggest:
+      - scout_survey
+      - read

@@ -1,112 +1,96 @@
 # Rosetta
 
-**Rosetta is the MCP server framework and schema bundler for the OpenCode ecosystem.**
+The schema framework for LLM-native MCP tools.
 
-It provides three core components:
+## Design Philosophy
 
-1. **MCP Server Library** (`lib/serve.ts`) - A generic, convention-based MCP server runtime
-2. **Schema Bundler** (`src/`) - Scans artifacts and generates the discovery schema
-3. **Commands Interface** (`commands/`) - Tools for creating and managing servers
+**Tools should be designed for LLM consumption, not programmatic precision.**
 
-## Overview
+The LLM is the semantic layer. Tools provide structured context that agents 
+can reason over — not query interfaces requiring precise syntax.
 
-### The MCP Server Library
+| Traditional API Design        | LLM-Native Tool Design           |
+|-------------------------------|----------------------------------|
+| Precise inputs (regex, SQL)   | Natural language descriptions    |
+| Raw data output               | Structured context for reasoning |
+| Tool does the matching        | LLM does the matching            |
+| Designed for programs         | Designed for agents              |
 
-`lib/serve.ts` provides a convention-based MCP server runtime that:
-- Auto-discovers tools from a `tools/` directory
-- Handles stdio transport and MCP protocol
-- Loads tool handlers, schemas, and metadata automatically
-- Requires zero boilerplate to add new tools (just create a directory)
+Every tool accepts **intent** and returns **context**. The agent bridges the gap.
 
-When you scaffold a new server with `/create-server`, it gets a copy of this library.
+---
 
-### The Schema Bundler
+## Convention-Based Building
 
-The bundler scans all artifacts in the ecosystem (tools, commands, plugins) and generates `rosetta.schema.json` - a single, unified schema file that agents load at startup for discovery.
-
-Components:
-- **scanner.ts** - Discovers and reads all artifact directories
-- **bundle.ts** - Generates the schema with semantic type enrichment
-- **validator.ts** - Validates artifact structure and schemas
-- **types.json** - Semantic type registry for schema enrichment
-
-### Commands
-
-Two commands orchestrate the workflow:
-
-- **`/create-server`** - Scaffold a new MCP server with Rosetta conventions
-- **`/rebuild`** - Regenerate `rosetta.schema.json` when artifacts change
-
-## Workflow
+No registration. No boilerplate. Directory structure is the API.
 
 ```
-1. Create a new server
-   /create-server my-server ~/projects
-   
-2. Implement tools in tools/ directory
-   - Each tool gets its own directory with index.ts, schema.json, purpose.md
-   
-3. Rebuild the schema bundle
-   /rebuild
-   
-4. Agents discover your tools via rosetta.schema.json
+server/
+└── tools/
+    └── find/
+        ├── index.ts      # Handler function
+        ├── schema.json   # Input/output schema
+        └── AGENTS.md     # What this tool does (for LLMs)
 ```
 
-## MCP Server Conventions
+Create the directory. Run `/rebuild`. Tool is discoverable.
 
-Any server using Rosetta's library should follow these conventions:
+### Why This is LLM-Native
 
-```
-my-server/
-├── src/
-│   ├── index.ts       # Entry point (stdio)
-│   └── serve.ts       # Copy of lib/serve.ts from rosetta
-├── tools/
-│   ├── my_tool/
-│   │   ├── index.ts       # Handler function
-│   │   ├── schema.json    # Input/output JSON schema
-│   │   └── purpose.md     # Tool description
-│   └── ...
-├── package.json
-├── tsconfig.json
-└── bun.lock
-```
+**WRITE > EDIT for agents.**
 
-Tool discovery is automatic - just add a directory to `tools/` and implement the handler.
+Creating a tool = write 3 files in a new directory. No edits to existing code.
+No registration. No imports. No insertion points to find.
 
-## Project Structure
+Agents create tools through pure file creation — atomic, predictable, safe.
 
-```
-rosetta/
-├── lib/
-│   └── serve.ts              # Generic MCP server runtime
-├── src/
-│   ├── bundle.ts             # Schema bundler
-│   ├── scanner.ts            # Artifact discovery
-│   ├── validator.ts          # Schema validation
-│   ├── types.ts              # Type definitions
-│   └── index.ts              # Rosetta server entry point
-├── commands/
-│   ├── create-server.md      # /create-server command definition
-│   └── rebuild.md            # /rebuild command definition
-├── types.json                # Semantic type registry
-├── rosetta.schema.json       # Generated schema bundle (do not edit)
-└── package.json
+`AGENTS.md` — context for agents, not documentation for humans.
+
+---
+
+## Semantic Types
+
+Types that carry meaning for LLMs, not just compilers.
+
+```typescript
+// types.ts
+
+/** A natural language description of what the agent is looking for */
+export type Intent = string;
+
+/** A file path with semantic context about what it contains */
+export type AnnotatedPath = {
+  path: string;
+  summary: string;      // What this file does
+  relevance: number;    // How well it matches the intent
+};
+
+/** Filesystem context optimized for LLM reasoning */
+export type FileContext = {
+  matches: AnnotatedPath[];
+  scope: string;        // What was searched
+  suggestions: string[]; // Refinement hints
+};
 ```
 
-## Building the Rosetta Server
+Schemas reference these types. Agents understand what they're working with.
 
-Rosetta itself runs as an MCP server that agents can call to scaffold new servers:
+---
+
+## The Ecosystem
+
+- **fs**: Describe what you're looking for → get digestible file context
+- **gutenberg**: Describe the page you want → get rendered HTML  
+- **flowbot**: Describe workflow state → get guidance on transitions
+- **grounder**: Describe what to measure → get analytics
+
+---
+
+## Usage
 
 ```bash
-bun run src/index.ts
+/rebuild          # Bundle all tool schemas
+/create-server    # Scaffold a new MCP server
 ```
 
-This exposes the `/create-server` and `/rebuild` commands via the MCP protocol.
-
-## How Agents Use Rosetta
-
-1. **Discovery** - Agents load `rosetta.schema.json` at startup
-2. **Server Creation** - Agents call `/create-server` to scaffold MCP servers
-3. **Schema Updates** - Agents call `/rebuild` when artifacts change
-4. **Tool Composition** - Agents discover all available tools from the schema bundle
+All schemas bundle into `rosetta.schema.json` — single source of truth.

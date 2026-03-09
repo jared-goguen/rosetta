@@ -59,9 +59,11 @@ export function generateBundle(
     name: t.name,
     server: t.server,
     ...(t.description ? { description: t.description } : {}),
+    ...(t.tags ? { tags: t.tags } : {}),
     schema: {
       input: enrichWithSemanticTypes(t.schema.input, typeRegistry),
-      output: enrichWithSemanticTypes(t.schema.output, typeRegistry)
+      output: enrichWithSemanticTypes(t.schema.output, typeRegistry),
+      ...(t.schema.mcp_dependencies ? { mcp_dependencies: t.schema.mcp_dependencies } : {})
     }
   }));
 
@@ -100,5 +102,4 @@ export async function rebuildBundle(root = getRoot()): Promise<RosettaSchema> {
   
   return schema;
 }
-
 

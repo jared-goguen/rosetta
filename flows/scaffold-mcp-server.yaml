@@ -1,0 +1,93 @@
+id: scaffold-mcp-server
+name: Scaffold MCP Server
+description: >
+  Create a complete MCP server with tools, plugins, commands, and documentation.
+  Handles server structure, package setup, and iterative scaffolding of components.
+
+steps:
+  - id: collect_inputs
+    focus: "Gather server details: name, tools, plugins, and commands to scaffold"
+    done_when: "All required inputs collected: server name, and at least one of [tools, plugins, commands]"
+    suggest:
+      - question
+
+  - id: create_structure
+    focus: "Create server directory structure at '{input.server_path}/{input.name}'"
+    done_when: "Directories created: src/, tools/, and optional plugins/, commands/"
+    suggest:
+      - scout_blaze
+      - write
+
+  - id: write_package
+    focus: "Write package.json with dependencies on mcp-core"
+    done_when: "Valid package.json created with name, version, scripts, and dependencies"
+    suggest:
+      - write
+
+  - id: write_entry_point
+    focus: "Create src/index.ts with MCP server entry point using mcp-core serve()"
+    done_when: "src/index.ts created with serve() call"
+    suggest:
+      - write
+
+  - id: write_tsconfig
+    focus: "Create tsconfig.json extending tsconfig.base.json"
+    done_when: "tsconfig.json created with proper extends and compilerOptions"
+    suggest:
+      - write
+
+  - id: write_agents_md
+    focus: "Generate AGENTS.md with server purpose, tools overview, and usage guidelines"
+    done_when: "Comprehensive AGENTS.md created with server documentation"
+    suggest:
+      - write
+
+  - id: write_readme
+    focus: "Generate README.md with installation, usage, and development instructions"
+    done_when: "README.md created with clear documentation"
+    suggest:
+      - write
+
+  - id: scaffold_tools
+    focus: "Iterate through tools list: {input.tools}, scaffolding each tool directory"
+    done_when: "All tools scaffolded with index.ts, schema.json, and AGENTS.md"
+    suggest:
+      - scout_blaze
+      - write
+    next: scaffold_plugins
+
+  - id: scaffold_plugins
+    focus: "If plugins specified, iterate through: {input.plugins}, scaffolding each plugin"
+    done_when: "All plugins scaffolded or none specified"
+    suggest:
+      - scout_blaze
+      - write
+    next: scaffold_commands
+
+  - id: scaffold_commands
+    focus: "If commands specified, iterate through: {input.commands}, scaffolding each command markdown file"
+    done_when: "All commands scaffolded or none specified"
+    suggest:
+      - scout_blaze
+      - write
+    next: register_server
+
+  - id: register_server
+    focus: "Add server to opencode.json MCP configuration"
+    done_when: "Server registered in opencode.json with correct command path"
+    suggest:
+      - read
+      - edit
+
+  - id: rebuild_schema
+    focus: "Run rosetta_rebuild to regenerate schema bundle and make tools discoverable"
+    done_when: "rosetta_rebuild completes successfully"
+    suggest:
+      - rosetta_rebuild
+
+  - id: verify
+    focus: "Verify complete server structure and provide next steps"
+    done_when: "All files created, server registered, schema rebuilt"
+    suggest:
+      - scout_survey
+      - read

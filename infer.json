@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Semantic inference table: domain + operation → tags",
+  
+  "domains": ["filesystem", "network", "database", "process", "config", "meta"],
+  "operations": ["reads-from", "writes-to", "executes", "queries"],
+  
+  "inference": {
+    "filesystem:reads-from": ["default-allowed", "read-only"],
+    "filesystem:writes-to": ["write"],
+    "filesystem:queries": ["default-allowed", "read-only"],
+    "filesystem:executes": ["dangerous"],
+    
+    "network:reads-from": ["external"],
+    "network:writes-to": ["external"],
+    "network:queries": ["external"],
+    
+    "database:reads-from": ["read-only"],
+    "database:writes-to": ["write"],
+    "database:queries": ["read-only"],
+    
+    "process:executes": ["dangerous", "requires-approval"],
+    
+    "config:reads-from": ["default-allowed", "read-only"],
+    "config:writes-to": ["write"],
+    
+    "meta:reads-from": ["default-allowed", "read-only"],
+    "meta:writes-to": ["default-allowed"]
+  }
+}

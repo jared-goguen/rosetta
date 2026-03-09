@@ -20,6 +20,54 @@ async function parseJsonOptional(p: string): Promise<object | undefined> {
   try { return JSON.parse(text); } catch { return undefined; }
 }
 
+// --- Semantic Tag Inference ---
+
+interface InferenceTable {
+  inference: Record<string, string[]>;
+}
+
+let inferenceTableCache: InferenceTable | null = null;
+
+async function loadInferenceTable(root: string): Promise<InferenceTable> {
+  if (inferenceTableCache) return inferenceTableCache;
+  
+  const inferPath = join(root, "rosetta", "infer.json");
+  const content = await readOptional(inferPath);
+  if (!content) {
+    inferenceTableCache = { inference: {} };
+    return inferenceTableCache;
+  }
+  
+  inferenceTableCache = JSON.parse(content) as InferenceTable;
+  return inferenceTableCache;
+}
+
+/**
+ * Infer tags from $domain and $operation annotations.
+ * Merges inferred tags with any explicit tags in the schema.
+ */
+async function inferTags(
+  schema: any,
+  root: string
+): Promise<string[] | undefined> {
+  const explicit = schema?.tags as string[] | undefined;
+  const domain = schema?.$domain as string | undefined;
+  const operation = schema?.$operation as string | undefined;
+  
+  // No semantic annotations → return explicit tags only
+  if (!domain || !operation) {
+    return explicit;
+  }
+  
+  const table = await loadInferenceTable(root);
+  const key = `${domain}:${operation}`;
+  const inferred = table.inference[key] ?? [];
+  
+  // Merge inferred + explicit, deduplicate
+  const merged = [...new Set([...inferred, ...(explicit ?? [])])];
+  return merged.length > 0 ? merged : undefined;
+}
+
 /**
  * Scan a single tool using convention structure.
  * Convention: tools/<name>/index.ts, schema.json, purpose.md
@@ -27,16 +75,25 @@ async function parseJsonOptional(p: string): Promise<object | undefined> {
 async function readConventionTool(
   name: string,
   toolDir: string,
-  serverName: string
+  serverName: string,
+  root: string
 ): Promise<ToolRecord | null> {
   const indexPath = join(toolDir, "index.ts");
   const schemaPath = join(toolDir, "schema.json");
   const purposePath = join(toolDir, "purpose.md");
+  const agentsPath = join(toolDir, "AGENTS.md");
 
   if (!await exists(indexPath)) return null;
 
-  const description = await readOptional(purposePath);
+  // Try AGENTS.md first (convention used by existing tools), then purpose.md
+  let description = await readOptional(agentsPath);
+  if (!description) {
+    description = await readOptional(purposePath);
+  }
   const schema = await parseJsonOptional(schemaPath) as any;
+  
+  // Infer tags from $domain + $operation, merge with explicit tags
+  const tags = await inferTags(schema, root);
 
   return {
     name,
@@ -44,8 +101,10 @@ async function readConventionTool(
     description: description?.split("\n")[0],  // First line only
     schema: schema ? { 
       input: schema.input ?? { type: "object" }, 
-      output: schema.output ?? { type: "object" } 
-    } : { input: { type: "object" }, output: { type: "object" } }
+      output: schema.output ?? { type: "object" },
+      ...(schema.mcp_dependencies ? { mcp_dependencies: schema.mcp_dependencies } : {})
+    } : { input: { type: "object" }, output: { type: "object" } },
+    tags
   };
 }
 
@@ -55,7 +114,8 @@ async function readConventionTool(
  */
 async function scanConventionServer(
   serverPath: string,
-  serverName: string
+  serverName: string,
+  root: string
 ): Promise<ToolRecord[]> {
   const toolsDir = join(serverPath, "tools");
   if (!await exists(toolsDir)) return [];
@@ -65,10 +125,13 @@ async function scanConventionServer(
 
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
+    // Skip directories starting with _ (e.g., _deprecated)
+    if (entry.name.startsWith('_')) continue;
     const tool = await readConventionTool(
       entry.name,
       join(toolsDir, entry.name),
-      serverName
+      serverName,
+      root
     );
     if (tool) results.push(tool);
   }
@@ -77,23 +140,44 @@ async function scanConventionServer(
 }
 
 /**
+ * Auto-discover convention-based servers by scanning root directory.
+ * A valid server must have: src/index.ts and tools/ directory
+ */
+async function discoverConventionServerNames(root: string): Promise<string[]> {
+  const serverNames: string[] = [];
+  
+  const entries = await readdir(root, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    
+    // Skip hidden directories and common non-server directories
+    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+    
+    const serverPath = join(root, entry.name);
+    const hasIndex = await exists(join(serverPath, "src", "index.ts"));
+    const hasTools = await exists(join(serverPath, "tools"));
+    
+    // Valid server: has both src/index.ts and tools/ directory
+    if (hasIndex && hasTools) {
+      serverNames.push(entry.name);
+    }
+  }
+  
+  return serverNames.sort();
+}
+
+/**
  * Scan all convention-based servers in the monorepo.
  */
 async function scanConventionServers(root: string): Promise<ToolRecord[]> {
-  const servers = [
-    { name: "rosetta", path: join(root, "rosetta") },
-    { name: "gutenberg", path: join(root, "gutenberg") },
-    { name: "flowbot", path: join(root, "flowbot") },
-    { name: "grounder", path: join(root, "grounder") }
-  ];
-
+  const serverNames = await discoverConventionServerNames(root);
   const allTools: ToolRecord[] = [];
 
-  for (const server of servers) {
-    if (await exists(server.path)) {
-      const tools = await scanConventionServer(server.path, server.name);
-      allTools.push(...tools);
-    }
+  for (const name of serverNames) {
+    const path = join(root, name);
+    const tools = await scanConventionServer(path, name, root);
+    allTools.push(...tools);
   }
 
   return allTools;
@@ -145,7 +229,8 @@ async function scanExportServer(
       schema: schema ? {
         input: schema.inputSchema ?? schema.input ?? { type: "object" },
         output: schema.outputSchema ?? schema.output ?? { type: "object" }
-      } : { input: { type: "object" }, output: { type: "object" } }
+      } : { input: { type: "object" }, output: { type: "object" } },
+      tags: schema?.tags as string[] | undefined
     });
   }
 
@@ -180,13 +265,13 @@ async function scanExportServers(root: string): Promise<ToolRecord[]> {
 async function scanServerMetadata(root: string): Promise<ServerRecord[]> {
   const serverNames = new Set<string>();
   
-  // Convention-based
-  for (const name of ["rosetta", "gutenberg", "flowbot", "grounder"]) {
-    const path = join(root, name);
-    if (await exists(path)) serverNames.add(name);
+  // Convention-based (auto-discover)
+  const conventionNames = await discoverConventionServerNames(root);
+  for (const name of conventionNames) {
+    serverNames.add(name);
   }
 
-  // Export-based
+  // Export-based (packages/mcp-server-*)
   const packagesDir = join(root, "packages");
   if (await exists(packagesDir)) {
     const entries = await readdir(packagesDir, { withFileTypes: true });
@@ -201,9 +286,11 @@ async function scanServerMetadata(root: string): Promise<ServerRecord[]> {
   const servers: ServerRecord[] = [];
   for (const name of Array.from(serverNames).sort()) {
     // Tool count will be calculated separately in bundle.ts
+    // Convention-based servers are "local" (bundled in monorepo)
+    const isConventionBased = conventionNames.includes(name);
     servers.push({
       name,
-      type: ["rosetta", "gutenberg", "flowbot", "grounder"].includes(name) ? "local" : "local",
+      type: isConventionBased ? "local" : "local",
       description: ""  // Can be enriched later
     });
   }

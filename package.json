@@ -7,8 +7,10 @@
     "build": "tsc"
   },
   "dependencies": {
+    "mcp-core": "*",
     "ajv": "^8.18.0",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.2",
+    "@anthropic-ai/sdk": "^0.28.0"
   },
   "devDependencies": {
     "@types/node": "^25.3.5",

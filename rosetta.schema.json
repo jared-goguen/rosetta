@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "generatedAt": "2026-03-08T10:45:32.693Z",
+  "generatedAt": "2026-03-09T00:54:06.404Z",
   "typeRegistry": {
     "FilePath": {
       "description": "Absolute or relative filesystem path",
@@ -291,398 +291,251 @@
         ],
         "default": "json"
       }
+    },
+    "GutenbergSpecPath": {
+      "description": "Path to a Gutenberg page specification YAML file. Input to the Gutenberg rendering pipeline.",
+      "purpose": "Define page structure and content for rendering via validate_schema → render_page → snapshot_html → deploy_directory",
+      "base": "string",
+      "validation": {
+        "pattern": "^.*\\.yaml$",
+        "examples": [
+          "/home/jared/source/pages/specs/landing.yaml",
+          "pages/specs/showcase/homepage.yaml",
+          "/absolute/path/to/pages/specs/documentation.yaml"
+        ]
+      },
+      "related": [
+        "FilePath",
+        "YAMLString"
+      ],
+      "pipeline_position": "input"
+    },
+    "HTMLFilePath": {
+      "description": "Path to a rendered HTML document. Output from gutenberg_render_page, input to gutenberg_snapshot_html and pages_helper_deploy_directory.",
+      "purpose": "Represents a complete, ready-to-deploy HTML page with all styles and content embedded",
+      "base": "string",
+      "validation": {
+        "pattern": "^.*\\.html$",
+        "examples": [
+          "/home/jared/source/pages/rendered/landing.html",
+          "pages/rendered/homepage.html",
+          "/absolute/path/to/rendered/page.html"
+        ]
+      },
+      "related": [
+        "FilePath",
+        "HTMLString"
+      ],
+      "pipeline_position": "intermediate"
+    },
+    "ImageFilePath": {
+      "description": "Path to an image file (PNG, JPEG, etc.). Output from gutenberg_snapshot_html, used for QA and visual regression testing.",
+      "purpose": "Screenshot of rendered HTML for visual verification and quality assurance before deployment",
+      "base": "string",
+      "validation": {
+        "pattern": "^.*\\.(png|jpg|jpeg|gif|webp|svg)$",
+        "examples": [
+          "/home/jared/source/pages/snapshots/landing.png",
+          "pages/snapshots/screenshot.png",
+          "/absolute/path/to/snapshots/page-qa.png"
+        ]
+      },
+      "related": [
+        "FilePath"
+      ],
+      "pipeline_position": "intermediate"
+    },
+    "CloudflareURL": {
+      "description": "Live deployment URL on Cloudflare Pages. Output from pages_helper_deploy_directory.",
+      "purpose": "Represents a live, publicly accessible website deployed to Cloudflare Pages with HTTPS and global CDN",
+      "base": "string",
+      "validation": {
+        "pattern": "^https://[a-z0-9-]+\\.[a-z0-9.-]+\\.pages\\.dev/?$",
+        "examples": [
+          "https://1a174de1.opencode-pipeline-test.pages.dev",
+          "https://abc123.my-project.pages.dev/",
+          "https://landing.my-company.pages.dev"
+        ]
+      },
+      "related": [
+        "FilePath"
+      ],
+      "pipeline_position": "output"
     }
   },
   "tools": [
     {
-      "name": "flowbot_get_flow",
+      "name": "advance",
       "server": "flowbot",
-      "description": "Read a flow definition from a YAML file",
+      "description": "# advance",
       "schema": {
         "input": {
           "type": "object",
           "properties": {
-            "path": {
+            "result": {
+              "type": "object",
+              "description": "Results from this step to pass to subsequent steps",
+              "additionalProperties": true
+            },
+            "decision": {
               "type": "string",
-              "description": "Absolute path to the flow YAML definition file"
-            }
-          },
-          "required": [
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
+              "description": "For branching flows, which path to take"
             }
           }
-        }
-      }
-    },
-    {
-      "name": "flowbot_get_state",
-      "server": "flowbot",
-      "description": "Get the current state of a flow instance with guidance and available actions",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Absolute path to the flow instance YAML file"
-            }
-          },
-          "required": [
-            "path"
-          ],
-          "additionalProperties": false
         },
         "output": {
           "type": "object",
           "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "flowbot_list_flows",
-      "server": "flowbot",
-      "description": "List all available workflow definitions in a directory",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "directory": {
-              "type": "string",
-              "description": "Absolute path to the directory containing flow YAML files"
-            }
-          },
-          "required": [
-            "directory"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "flowbot_start_flow",
-      "server": "flowbot",
-      "description": "Start a new workflow instance from a flow definition file",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Absolute path to the flow YAML definition file"
-            }
-          },
-          "required": [
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "flowbot_transition",
-      "server": "flowbot",
-      "description": "Advance a flow instance to a new state",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Absolute path to the flow instance YAML file"
+            "completed": {
+              "type": "boolean"
             },
-            "to": {
-              "type": "string",
-              "description": "Target state to transition to"
-            }
-          },
-          "required": [
-            "path",
-            "to"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "get_flow",
-      "server": "flowbot",
-      "description": "Retrieve a flow definition by its ID.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Absolute path to the flow .yaml file"
-            }
-          },
-          "required": [
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "description": "The full flow definition"
-        }
-      }
-    },
-    {
-      "name": "get_state",
-      "server": "flowbot",
-      "description": "Get current state information and guidance for a flow instance.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "instancePath": {
-              "type": "string",
-              "description": "Absolute path to the flow instance .yaml file"
-            }
-          },
-          "required": [
-            "instancePath"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "flowId": {
+            "flow": {
               "type": "string"
             },
-            "flowName": {
+            "step": {
               "type": "string"
             },
-            "flowDescription": {
+            "progress": {
               "type": "string"
             },
-            "currentState": {
+            "focus": {
               "type": "string"
             },
-            "stateDescription": {
+            "done_when": {
               "type": "string"
             },
-            "guidance": {
-              "type": "string"
-            },
-            "advisoryPermissions": {
+            "suggest": {
               "type": "array",
               "items": {
                 "type": "string"
-              },
-              "description": "Advisory list of tools recommended for this state (not enforced)"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "done",
+      "server": "flowbot",
+      "description": "# done",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "flow": {
+              "type": "string"
             },
-            "availableTransitions": {
+            "steps_completed": {
+              "type": "number"
+            },
+            "duration": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "focus",
+      "server": "flowbot",
+      "description": "# focus",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "flow": {
+              "type": "string"
+            },
+            "step": {
+              "type": "string"
+            },
+            "progress": {
+              "type": "string"
+            },
+            "focus": {
+              "type": "string"
+            },
+            "done_when": {
+              "type": "string"
+            },
+            "suggest": {
               "type": "array",
               "items": {
+                "type": "string"
+              }
+            },
+            "stalled": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "pause",
+      "server": "flowbot",
+      "description": "# pause",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string",
+              "description": "Why the flow is being paused (for debugging/logging)"
+            },
+            "prompt": {
+              "type": "string",
+              "description": "Question or prompt for the user/agent"
+            },
+            "requested_inputs": {
+              "type": "object",
+              "description": "Specification of inputs needed to resume",
+              "additionalProperties": {
                 "type": "object",
                 "properties": {
-                  "to": {
-                    "type": "string"
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "choice",
+                      "text",
+                      "number",
+                      "boolean"
+                    ]
                   },
-                  "guard": {
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "optional": {
+                    "type": "boolean"
+                  },
+                  "description": {
                     "type": "string"
                   }
-                }
-              }
-            },
-            "history": {
-              "type": "array"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "list_flows",
-      "server": "flowbot",
-      "description": "List all available flow definitions with summary information.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "dir": {
-              "type": "string",
-              "description": "Absolute path to the directory containing flow .yaml files"
-            }
-          },
-          "required": [
-            "dir"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
+                },
+                "required": [
+                  "type"
+                ]
               }
             }
-          }
-        }
-      }
-    },
-    {
-      "name": "start_flow",
-      "server": "flowbot",
-      "description": "Start a new flow instance from a flow definition.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Absolute path to the flow .yaml file to start"
-            }
           },
           "required": [
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "instanceId": {
-              "type": "string"
-            },
-            "instancePath": {
-              "type": "string"
-            },
-            "currentState": {
-              "type": "string"
-            },
-            "advisoryPermissions": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Advisory list of tools recommended for this state (not enforced)"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "transition",
-      "server": "flowbot",
-      "description": "Transition a flow instance to a new state.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "instancePath": {
-              "type": "string",
-              "description": "Absolute path to the flow instance .yaml file"
-            },
-            "toState": {
-              "type": "string",
-              "description": "The state to transition to"
-            }
-          },
-          "required": [
-            "instancePath",
-            "toState"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "currentState": {
-              "type": "string"
-            },
-            "advisoryPermissions": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Advisory list of tools recommended for this state (not enforced)"
-            },
-            "availableTransitions": {
-              "type": "array"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "cat",
-      "server": "fs",
-      "description": "Read entire file contents to stdout",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Path to the file to read"
-            }
-          },
-          "required": [
-            "path"
-          ],
-          "additionalProperties": false
+            "reason",
+            "prompt",
+            "requested_inputs"
+          ]
         },
         "output": {
           "type": "object",
@@ -706,32 +559,26 @@
       }
     },
     {
-      "name": "edit",
-      "server": "fs",
-      "description": "Edit a file by replacing exact string matches",
+      "name": "resume",
+      "server": "flowbot",
+      "description": "# resume",
       "schema": {
         "input": {
           "type": "object",
           "properties": {
-            "path": {
+            "instance_id": {
               "type": "string",
-              "description": "Path to the file to edit"
+              "description": "Optional: Flow instance ID to resume (defaults to current session)"
             },
-            "oldString": {
-              "type": "string",
-              "description": "Exact string to find and replace"
-            },
-            "newString": {
-              "type": "string",
-              "description": "String to replace it with"
+            "inputs": {
+              "type": "object",
+              "description": "Input values requested by the pause",
+              "additionalProperties": true
             }
           },
           "required": [
-            "path",
-            "oldString",
-            "newString"
-          ],
-          "additionalProperties": false
+            "inputs"
+          ]
         },
         "output": {
           "type": "object",
@@ -755,31 +602,145 @@
       }
     },
     {
-      "name": "find",
-      "server": "fs",
-      "description": "Find files and directories by pattern",
+      "name": "start",
+      "server": "flowbot",
+      "description": "# start",
       "schema": {
         "input": {
           "type": "object",
           "properties": {
             "path": {
               "type": "string",
-              "description": "Root directory to search in"
+              "description": "Absolute path to the flow YAML file"
             },
-            "pattern": {
+            "input": {
+              "type": "object",
+              "description": "Initial input variables for the flow",
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "path"
+          ]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "instance_id": {
+              "type": "string"
+            },
+            "flow": {
+              "type": "string"
+            },
+            "progress": {
+              "type": "string"
+            },
+            "focus": {
+              "type": "string"
+            },
+            "done_when": {
+              "type": "string"
+            },
+            "suggest": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "bash_check",
+      "server": "grounder",
+      "description": "# bash_check",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "command": {
               "type": "string",
-              "description": "Pattern to search for (glob-like: *.ext, name*, *substring*)"
+              "description": "The bash command to check for anti-patterns"
             },
-            "maxDepth": {
+            "force": {
+              "type": "boolean",
+              "description": "If true, execute the command anyway even if anti-pattern detected. Default: false"
+            }
+          },
+          "required": [
+            "command"
+          ]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "text",
+                      "error"
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "check_tool_usage",
+      "server": "grounder",
+      "description": "# check_tool_usage",
+      "schema": {
+        "input": {
+          "type": "object"
+        },
+        "output": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "name": "compare_tools",
+      "server": "grounder",
+      "description": "# compare_tools",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "metric": {
+              "type": "string",
+              "enum": [
+                "speed",
+                "reliability",
+                "usage",
+                "errors"
+              ],
+              "description": "What to compare by. Default: reliability"
+            },
+            "limit": {
               "type": "number",
-              "description": "Maximum directory depth to search (default: 5)"
+              "description": "How many tools to show. Default: 10"
+            },
+            "order": {
+              "type": "string",
+              "enum": [
+                "best",
+                "worst"
+              ],
+              "description": "Show best or worst performers. Default: best"
             }
-          },
-          "required": [
-            "path",
-            "pattern"
-          ],
-          "additionalProperties": false
+          }
         },
         "output": {
           "type": "object",
@@ -803,39 +764,32 @@
       }
     },
     {
-      "name": "grep",
-      "server": "fs",
-      "description": "Search file contents with regex pattern matching",
+      "name": "done",
+      "server": "grounder",
+      "description": "# done (tool handler)",
       "schema": {
         "input": {
           "type": "object",
           "properties": {
-            "pattern": {
+            "detail_level": {
               "type": "string",
-              "description": "Regex pattern to search for"
+              "enum": [
+                "brief",
+                "detailed"
+              ],
+              "description": "How much detail to include in the review. Default: detailed"
             },
-            "path": {
+            "time_window": {
               "type": "string",
-              "description": "File or directory to search in"
-            },
-            "recursive": {
-              "type": "boolean",
-              "description": "Search recursively in directories (default: false)"
-            },
-            "lineNumbers": {
-              "type": "boolean",
-              "description": "Show line numbers (default: true)"
-            },
-            "ignoreCase": {
-              "type": "boolean",
-              "description": "Case-insensitive search (default: false)"
+              "enum": [
+                "last_hour",
+                "last_day",
+                "last_week",
+                "all_time"
+              ],
+              "description": "Time period to analyze. Default: last_hour (current session)"
             }
-          },
-          "required": [
-            "pattern",
-            "path"
-          ],
-          "additionalProperties": false
+          }
         },
         "output": {
           "type": "object",
@@ -859,26 +813,320 @@
       }
     },
     {
-      "name": "head",
-      "server": "fs",
-      "description": "Read first N lines of a file",
+      "name": "get_tool_metrics",
+      "server": "grounder",
+      "description": "# get_tool_metrics",
       "schema": {
         "input": {
           "type": "object",
           "properties": {
-            "path": {
+            "tool_name": {
               "type": "string",
-              "description": "Path to the file to read from"
+              "description": "Name of the tool to get metrics for"
             },
-            "lines": {
+            "time_window": {
+              "type": "string",
+              "enum": [
+                "last_hour",
+                "last_day",
+                "last_week",
+                "all_time"
+              ],
+              "description": "Time period to analyze. Default: all_time"
+            }
+          },
+          "required": [
+            "tool_name"
+          ]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "list_tools",
+      "server": "grounder",
+      "description": "# list_tools",
+      "schema": {
+        "input": {
+          "type": "object"
+        },
+        "output": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "name": "survey_metrics",
+      "server": "grounder",
+      "description": "# survey_metrics",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "time_window": {
+              "type": "string",
+              "enum": [
+                "last_hour",
+                "last_day",
+                "last_week",
+                "all_time"
+              ],
+              "description": "Time period to analyze. Default: all_time"
+            },
+            "intent": {
+              "type": "string",
+              "description": "Optional: what you're trying to understand (e.g., 'system health', 'errors', 'performance')"
+            }
+          }
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "track_tool_call",
+      "server": "grounder",
+      "description": "# track_tool_call",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "tool_name": {
+              "type": "string",
+              "description": "Name of the tool being tracked"
+            },
+            "duration": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Duration in ms (number) or semantic: 'instant', 'fast', 'normal', 'slow', 'timeout'"
+            },
+            "success": {
+              "type": "boolean",
+              "description": "Whether the call succeeded. Default: true"
+            },
+            "error_message": {
+              "type": "string",
+              "description": "Error message if call failed"
+            }
+          },
+          "required": [
+            "tool_name"
+          ]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "render_page",
+      "server": "gutenberg",
+      "description": "# Render Page Spec to HTML",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "spec_path": {
+              "type": "string",
+              "description": "Absolute path to the Gutenberg page specification YAML file. Must pass validation (valid=true from validate_schema).",
+              "x-semantic-type": "GutenbergSpecPath"
+            },
+            "output_dir": {
+              "type": "string",
+              "description": "Optional: Directory to write rendered HTML. Defaults to pages/rendered/. Directory is created if it doesn't exist.",
+              "x-semantic-type": "DirectoryPath"
+            }
+          },
+          "required": [
+            "spec_path"
+          ],
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "html_path": {
+              "type": "string",
+              "description": "Absolute path to the rendered HTML file. File is ready for deployment or further processing (screenshots, QA, etc.). All CSS is embedded (no external CDN).",
+              "x-semantic-type": "HTMLFilePath"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "snapshot_html",
+      "server": "gutenberg",
+      "description": "# Snapshot HTML to Image",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "html_path": {
+              "type": "string",
+              "description": "Absolute path to rendered HTML file. Must be valid HTML output from render_page. File is read from disk and rendered in headless Chromium.",
+              "x-semantic-type": "HTMLFilePath"
+            },
+            "output_dir": {
+              "type": "string",
+              "description": "Optional: Directory to write screenshot PNG. Defaults to pages/snapshots/. Directory is created if it doesn't exist.",
+              "x-semantic-type": "DirectoryPath"
+            },
+            "width": {
               "type": "number",
-              "description": "Number of lines to read (default: 10)"
+              "description": "Browser viewport width in pixels for rendering. Default 1440 (desktop). Use 375 for mobile preview.",
+              "default": 1440,
+              "minimum": 320,
+              "maximum": 3840
+            },
+            "height": {
+              "type": "number",
+              "description": "Browser viewport height in pixels. Default 900. Full page is always captured vertically.",
+              "default": 900,
+              "minimum": 320,
+              "maximum": 2160
             }
           },
           "required": [
-            "path"
+            "html_path"
           ],
           "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "image_path": {
+              "type": "string",
+              "description": "Absolute path to the full-page screenshot PNG file. Ready for QA, visual regression testing, or documentation.",
+              "x-semantic-type": "ImageFilePath"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "validate_schema",
+      "server": "gutenberg",
+      "description": "# Validate Page Schema",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "spec_path": {
+              "type": "string",
+              "description": "Absolute path to the Gutenberg page specification YAML file to validate. Must be valid YAML with required 'page' root key.",
+              "x-semantic-type": "GutenbergSpecPath"
+            }
+          },
+          "required": [
+            "spec_path"
+          ],
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "valid": {
+              "type": "boolean",
+              "description": "True if spec has no blocking validation errors and can be safely rendered"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "JSON path to error location (e.g., 'page.sections[0].type')"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Detailed error message explaining what's wrong and how to fix it"
+                  }
+                }
+              },
+              "description": "Blocking validation errors that prevent rendering. Fix these before calling render_page."
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Non-blocking suggestions for improvement (missing SEO metadata, accessibility, etc.)"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "cancel",
+      "server": "marionette",
+      "description": "# cancel",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "orchestration_id": {
+              "type": "string",
+              "description": "ID of the orchestration to cancel"
+            }
+          },
+          "required": [
+            "orchestration_id"
+          ]
         },
         "output": {
           "type": "object",
@@ -903,21 +1151,18 @@
     },
     {
       "name": "list",
-      "server": "fs",
-      "description": "List directory contents with metadata",
+      "server": "marionette",
+      "description": "# list",
       "schema": {
         "input": {
           "type": "object",
           "properties": {
-            "path": {
-              "type": "string",
-              "description": "Directory path to list contents of"
+            "metadata_filter": {
+              "type": "object",
+              "description": "Optional: filter orchestrations by metadata",
+              "additionalProperties": true
             }
-          },
-          "required": [
-            "path"
-          ],
-          "additionalProperties": false
+          }
         },
         "output": {
           "type": "object",
@@ -941,22 +1186,42 @@
       }
     },
     {
-      "name": "ls",
-      "server": "fs",
-      "description": "List directory contents with metadata",
+      "name": "orchestrate",
+      "server": "marionette",
+      "description": "# orchestrate",
       "schema": {
         "input": {
           "type": "object",
           "properties": {
-            "path": {
-              "type": "string",
-              "description": "Directory path to list contents of"
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Array of items to process (e.g., file paths, IDs, names)"
+            },
+            "flows": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Array of flow paths to run in sequence for each item (e.g., ['publish.yaml', 'visual-qa.yaml'])"
+            },
+            "input_template": {
+              "type": "object",
+              "description": "Template for flow inputs. Supports variables: {item}, {index}, {orchestration_id}",
+              "additionalProperties": true
+            },
+            "concurrency": {
+              "type": "number",
+              "description": "Number of items to process in parallel (default: 3)",
+              "default": 3
             }
           },
           "required": [
-            "path"
-          ],
-          "additionalProperties": false
+            "items",
+            "flows"
+          ]
         },
         "output": {
           "type": "object",
@@ -980,9 +1245,463 @@
       }
     },
     {
-      "name": "mkdir",
-      "server": "fs",
-      "description": "Create directories",
+      "name": "retry_failed",
+      "server": "marionette",
+      "description": "# retry_failed",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "orchestration_id": {
+              "type": "string",
+              "description": "ID of the completed orchestration with failures"
+            },
+            "flows": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Optional: Override flow sequence for retry (defaults to original flows)"
+            }
+          },
+          "required": [
+            "orchestration_id"
+          ]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "status",
+      "server": "marionette",
+      "description": "# status",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "orchestration_id": {
+              "type": "string",
+              "description": "ID of the orchestration to check"
+            }
+          },
+          "required": [
+            "orchestration_id"
+          ]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "update_item",
+      "server": "marionette",
+      "description": "# update_item",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "orchestration_id": {
+              "type": "string",
+              "description": "ID of the orchestration"
+            },
+            "item": {
+              "type": "string",
+              "description": "Item name or identifier to update"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "running",
+                "paused",
+                "complete",
+                "error"
+              ],
+              "description": "New status for the item"
+            },
+            "result": {
+              "type": "object",
+              "description": "Optional result object from flow execution",
+              "additionalProperties": true
+            },
+            "error": {
+              "type": "string",
+              "description": "Optional error message if status is 'error'"
+            }
+          },
+          "required": [
+            "orchestration_id",
+            "item",
+            "status"
+          ]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "create_project",
+      "server": "pages-helper",
+      "description": "# Create Project",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "project_name": {
+              "type": "string",
+              "description": "Name of the Cloudflare Pages project (lowercase-hyphenated). E.g., 'my-site', 'company-blog'. Must be unique within account.",
+              "x-semantic-type": "ProjectName",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "required": [
+            "project_name"
+          ],
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "project_name": {
+              "type": "string",
+              "description": "Created project name"
+            },
+            "url": {
+              "type": "string",
+              "description": "Project base URL (https://{project_name}.pages.dev). Individual deployments get unique subdomains.",
+              "x-semantic-type": "CloudflareURL"
+            },
+            "created_at": {
+              "type": "string",
+              "description": "ISO 8601 timestamp of project creation"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "created",
+                "existing"
+              ],
+              "description": "Whether project was newly created or already existed (idempotent operation)"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "deploy_directory",
+      "server": "pages-helper",
+      "description": "# Deploy Directory",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "project_name": {
+              "type": "string",
+              "description": "Cloudflare Pages project name (lowercase-hyphenated, e.g., 'my-site'). Auto-creates project if needed.",
+              "x-semantic-type": "ProjectName",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            },
+            "directory": {
+              "type": "string",
+              "description": "Absolute path to directory containing files to deploy. Recursively reads all files. Must include index.html for root URL access.",
+              "x-semantic-type": "DirectoryPath"
+            },
+            "branch": {
+              "type": "string",
+              "description": "Optional preview branch name for staging deployments (defaults to 'main'). Allows multiple deployments per project.",
+              "x-semantic-type": "ProjectName"
+            }
+          },
+          "required": [
+            "project_name",
+            "directory"
+          ],
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Full deployment ID (UUID)"
+            },
+            "short_id": {
+              "type": "string",
+              "description": "Short deployment ID (8 characters, used in URL)"
+            },
+            "project_name": {
+              "type": "string",
+              "description": "Cloudflare Pages project name"
+            },
+            "url": {
+              "type": "string",
+              "description": "Live deployment URL (HTTPS). Deployed at https://{short_id}.{project_name}.pages.dev",
+              "x-semantic-type": "CloudflareURL"
+            },
+            "created_on": {
+              "type": "string",
+              "description": "ISO 8601 timestamp when deployment was created"
+            },
+            "latest_stage": {
+              "type": "object",
+              "description": "Current deployment stage status (queued, initialize, build, deploy, etc.)",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "idle",
+                    "active",
+                    "success",
+                    "failure"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "get_project",
+      "server": "pages-helper",
+      "description": "# Get Project",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "project_name": {
+              "type": "string",
+              "description": "Name of the Cloudflare Pages project to retrieve (lowercase-hyphenated)",
+              "x-semantic-type": "ProjectName"
+            }
+          },
+          "required": [
+            "project_name"
+          ],
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Project name",
+              "x-semantic-type": "ProjectName"
+            },
+            "url": {
+              "type": "string",
+              "description": "Project base URL (https://{name}.pages.dev). Each deployment gets a unique subdomain.",
+              "x-semantic-type": "CloudflareURL"
+            },
+            "created_at": {
+              "type": "string",
+              "description": "ISO 8601 timestamp of project creation"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "list_projects",
+      "server": "pages-helper",
+      "description": "# List Projects",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {},
+          "description": "No parameters required. Lists all Cloudflare Pages projects accessible with current credentials."
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "projects": {
+              "type": "array",
+              "description": "Array of all Cloudflare Pages projects in the account",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Project name (lowercase-hyphenated, unique per account)",
+                    "x-semantic-type": "ProjectName"
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "Project base URL (https://{name}.pages.dev)",
+                    "x-semantic-type": "CloudflareURL"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "check_consistency",
+      "server": "rosetta",
+      "description": "Validate all MCPs follow conventions and best practices",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "servers": {
+              "type": "array",
+              "description": "Optional: list of servers to check (e.g., ['flowbot', 'gutenberg']). If not provided, checks all known servers.",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string",
+              "description": "Summary of checks performed"
+            },
+            "report": {
+              "type": "string",
+              "description": "Human-readable consistency report"
+            },
+            "details": {
+              "type": "object",
+              "description": "Detailed results for each server"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "debug_schema",
+      "server": "rosetta",
+      "description": "Debug the schema pipeline when tools aren't showing up in rosetta.schema.json",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "tool_name": {
+              "type": "string",
+              "description": "Optional: specific tool name to debug (e.g., 'done', 'render_page')"
+            },
+            "server": {
+              "type": "string",
+              "description": "Optional: specific server to check (e.g., 'flowbot', 'gutenberg')"
+            }
+          }
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Overall status: 'ok' or 'failed'"
+            },
+            "report": {
+              "type": "string",
+              "description": "Human-readable diagnostic report"
+            },
+            "details": {
+              "type": "object",
+              "description": "Structured details about each stage"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "rebuild",
+      "server": "rosetta",
+      "description": "Rebuild schema with change detection and feedback",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "force": {
+              "type": "boolean",
+              "description": "Force rebuild even if no changes detected (default: false)"
+            }
+          }
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Rebuild status: 'success' or 'error'"
+            },
+            "report": {
+              "type": "string",
+              "description": "Human-readable rebuild report"
+            },
+            "details": {
+              "type": "object",
+              "description": "Detailed rebuild information"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "blaze",
+      "server": "scout",
+      "description": "# blaze",
       "schema": {
         "input": {
           "type": "object",
@@ -993,1146 +1712,140 @@
             },
             "recursive": {
               "type": "boolean",
-              "description": "Create parent directories as needed (default: true)"
+              "description": "Create parent directories if needed. Default: true"
             }
           },
           "required": [
             "path"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "read",
-      "server": "fs",
-      "description": "Read file contents from the filesystem",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Path to the file to read (absolute or relative)"
-            }
-          },
-          "required": [
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "sandbox_write",
-      "server": "fs",
-      "description": "Write to /tmp safely for intermediary artifacts",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Path within /tmp to write to (e.g., /tmp/output.txt)"
-            },
-            "content": {
-              "type": "string",
-              "description": "Content to write to the file"
-            }
-          },
-          "required": [
-            "path",
-            "content"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "stat",
-      "server": "fs",
-      "description": "Get file or directory metadata",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Path to the file or directory to get metadata for"
-            }
-          },
-          "required": [
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "tail",
-      "server": "fs",
-      "description": "Read last N lines of a file",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Path to the file to read from"
-            },
-            "lines": {
-              "type": "number",
-              "description": "Number of lines to read (default: 10)"
-            }
-          },
-          "required": [
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "write",
-      "server": "fs",
-      "description": "Write content to a file on the filesystem",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Path to the file to write (absolute or relative)"
-            },
-            "content": {
-              "type": "string",
-              "description": "Content to write to the file"
-            }
-          },
-          "required": [
-            "path",
-            "content"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "analyze_efficiency",
-      "server": "grounder",
-      "description": "Analyze a session for efficiency improvements. Detects redundant calls (identical input within 5 minutes), identifies slow tools (>2x average), and finds error patterns (>30% failure rate). Provides actionable suggestions for optimization.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "session_id": {
-              "type": "string",
-              "description": "Session ID to analyze. If not provided, uses the most recent session."
-            }
-          },
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "session_id": {
-              "type": "string"
-            },
-            "redundant_calls": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "tool": {
-                    "type": "string"
-                  },
-                  "count": {
-                    "type": "number"
-                  },
-                  "description": {
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "slow_tools": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "tool": {
-                    "type": "string"
-                  },
-                  "avg_ms": {
-                    "type": "number"
-                  },
-                  "times_slower": {
-                    "type": "number"
-                  }
-                }
-              }
-            },
-            "error_patterns": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "tool": {
-                    "type": "string"
-                  },
-                  "error_count": {
-                    "type": "number"
-                  },
-                  "error_rate": {
-                    "type": "number"
-                  }
-                }
-              }
-            },
-            "suggestions": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "get_session_summary",
-      "server": "grounder",
-      "description": "Retrieve a summary of a session including tool counts, duration, file changes, and success rates. If no session_id is provided, uses the most recent session. Results are cached for 5 minutes.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "session_id": {
-              "type": "string",
-              "description": "Session ID. If not provided, uses the most recent session."
-            }
-          },
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "session_id": {
-              "type": "string"
-            },
-            "title": {
-              "type": "string"
-            },
-            "created": {
-              "type": "number"
-            },
-            "duration_ms": {
-              "type": "number"
-            },
-            "tool_count": {
-              "type": "number"
-            },
-            "unique_tools": {
-              "type": "number"
-            },
-            "file_changes": {
-              "type": "object",
-              "properties": {
-                "additions": {
-                  "type": "number"
-                },
-                "deletions": {
-                  "type": "number"
-                },
-                "files_changed": {
-                  "type": "number"
-                }
-              }
-            },
-            "messages": {
-              "type": "number"
-            },
-            "success_rate": {
-              "type": "number"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "get_tool_history",
-      "server": "grounder",
-      "description": "Query tool call history with optional filters by session ID, tool name, or status. Supports pagination with limit and offset. Returns timing information for each call.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "session_id": {
-              "type": "string",
-              "description": "Filter by session ID"
-            },
-            "tool": {
-              "type": "string",
-              "description": "Filter by tool name"
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "pending",
-                "running",
-                "completed",
-                "error"
-              ],
-              "description": "Filter by status"
-            },
-            "limit": {
-              "type": "number",
-              "description": "Max results (default: 50)"
-            },
-            "offset": {
-              "type": "number",
-              "description": "Offset for pagination (default: 0)"
-            }
-          },
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "tools": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "callID": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string"
-                  },
-                  "title": {
-                    "type": "string"
-                  },
-                  "duration_ms": {
-                    "type": "number"
-                  },
-                  "startTime": {
-                    "type": "number"
-                  },
-                  "endTime": {
-                    "type": "number"
-                  }
-                }
-              }
-            },
-            "total": {
-              "type": "number"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "get_tool_stats",
-      "server": "grounder",
-      "description": "Retrieve aggregate statistics for tools across all sessions. Optionally filter by tool name or limit to a specific number of days. Returns call counts, success rates, and timing metrics (average, min, max duration).",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "tool": {
-              "type": "string",
-              "description": "Filter by specific tool name (optional)"
-            },
-            "days": {
-              "type": "number",
-              "description": "Limit to last N days (optional, default: all time)"
-            }
-          },
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "stats": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "tool": {
-                    "type": "string"
-                  },
-                  "total_calls": {
-                    "type": "number"
-                  },
-                  "success_count": {
-                    "type": "number"
-                  },
-                  "error_count": {
-                    "type": "number"
-                  },
-                  "success_rate": {
-                    "type": "number"
-                  },
-                  "avg_duration_ms": {
-                    "type": "number"
-                  },
-                  "min_duration_ms": {
-                    "type": "number"
-                  },
-                  "max_duration_ms": {
-                    "type": "number"
-                  }
-                }
-              }
-            },
-            "from_cache": {
-              "type": "boolean"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "create_project",
-      "server": "gutenberg",
-      "description": "Create a new Cloudflare Pages project.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "Project name (lowercase alphanumeric and hyphens, e.g. 'my-site')",
-              "pattern": "^[a-z0-9][a-z0-9-]*$"
-            },
-            "production_branch": {
-              "type": "string",
-              "description": "Git branch to treat as production (defaults to 'main')"
-            }
-          },
-          "required": [
-            "name"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      }
-    },
-    {
-      "name": "deploy_html",
-      "server": "gutenberg",
-      "description": "Deploy HTML (and other static) files directly to a Cloudflare Pages project.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "project_name": {
-              "type": "string",
-              "description": "Name of the Pages project to deploy to"
-            },
-            "files": {
-              "type": "object",
-              "description": "Map of file paths to file contents, e.g. { \"/index.html\": \"<html>...</html>\" }",
-              "additionalProperties": {
-                "type": "string"
-              }
-            },
-            "branch": {
-              "type": "string",
-              "description": "Branch name to associate with this deployment (optional)"
-            }
-          },
-          "required": [
-            "project_name",
-            "files"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      }
-    },
-    {
-      "name": "generate_theme",
-      "server": "gutenberg",
-      "description": "Generate a Tailwind CSS theme configuration",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "primaryHue": {
-              "type": "string",
-              "description": "Primary brand hue (sky, violet, rose, amber, emerald, slate, neutral)",
-              "enum": [
-                "sky",
-                "violet",
-                "rose",
-                "amber",
-                "emerald",
-                "slate",
-                "neutral"
-              ],
-              "default": "sky"
-            },
-            "neutralHue": {
-              "type": "string",
-              "description": "Neutral hue for grayscale palette (slate or neutral)",
-              "enum": [
-                "slate",
-                "neutral"
-              ],
-              "default": "slate"
-            }
-          },
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "light": {
-              "type": "object",
-              "description": "Light theme spec"
-            },
-            "dark": {
-              "type": "object",
-              "description": "Dark theme spec"
-            },
-            "availableHues": {
-              "type": "array",
-              "description": "List of available hue names"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "get_deployment",
-      "server": "gutenberg",
-      "description": "Get details for a specific Cloudflare Pages deployment.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "project_name": {
-              "type": "string",
-              "description": "Name of the Pages project"
-            },
-            "deployment_id": {
-              "type": "string",
-              "description": "ID of the deployment to retrieve"
-            }
-          },
-          "required": [
-            "project_name",
-            "deployment_id"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      }
-    },
-    {
-      "name": "gutenberg_list_components",
-      "server": "gutenberg",
-      "description": "List all available page component types and variants",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "gutenberg_preview_component",
-      "server": "gutenberg",
-      "description": "Preview a single component in isolation",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "component": {
-              "type": "object",
-              "description": "Component definition object with type and properties"
-            }
-          },
-          "required": [
-            "component"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "gutenberg_render_page",
-      "server": "gutenberg",
-      "description": "Parse and render a full HTML page from a page schema definition",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "string",
-                  "description": "YAML or JSON page schema"
-                },
-                {
-                  "type": "object",
-                  "description": "Page schema object"
-                }
-              ],
-              "description": "Page schema defining layout and sections"
-            }
-          },
-          "required": [
-            "schema"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "gutenberg_validate_schema",
-      "server": "gutenberg",
-      "description": "Validate a page schema and return errors and warnings",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "string",
-                  "description": "YAML or JSON page schema"
-                },
-                {
-                  "type": "object",
-                  "description": "Page schema object"
-                }
-              ],
-              "description": "Page schema to validate"
-            }
-          },
-          "required": [
-            "schema"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "list_components",
-      "server": "gutenberg",
-      "description": "List all available component types and variants",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "components": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "variants": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "description": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "list_deployments",
-      "server": "gutenberg",
-      "description": "List all deployments for a Cloudflare Pages project.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "project_name": {
-              "type": "string",
-              "description": "Name of the Pages project"
-            }
-          },
-          "required": [
-            "project_name"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      }
-    },
-    {
-      "name": "list_projects",
-      "server": "gutenberg",
-      "description": "List all Cloudflare Pages projects for the configured account.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "preview_component",
-      "server": "gutenberg",
-      "description": "Preview a single component in isolation",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "section": {
-              "type": "object",
-              "description": "Section object with type and component-specific properties"
-            },
-            "options": {
-              "type": "object",
-              "properties": {
-                "minify": {
-                  "type": "boolean",
-                  "description": "Minify HTML output",
-                  "default": false
-                },
-                "includeComments": {
-                  "type": "boolean",
-                  "description": "Include HTML comments",
-                  "default": true
-                },
-                "tailwindCDN": {
-                  "type": "boolean",
-                  "description": "Include Tailwind CSS CDN",
-                  "default": true
-                },
-                "indentSize": {
-                  "type": "number",
-                  "description": "Number of spaces for indentation",
-                  "default": 2
-                }
-              }
-            }
-          },
-          "required": [
-            "section"
           ]
         },
         "output": {
           "type": "object",
           "properties": {
-            "html": {
-              "type": "string",
-              "description": "Generated HTML document"
-            },
-            "error": {
-              "type": "string",
-              "description": "Error message if rendering failed"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "render_page",
-      "server": "gutenberg",
-      "description": "Render a full HTML page from a Gutenberg page schema",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "schema": {
-              "description": "Page schema as a YAML string or a plain object. Must have a 'page.sections' array.",
-              "oneOf": [
-                {
-                  "type": "string",
-                  "description": "YAML string"
-                },
-                {
-                  "type": "object",
-                  "description": "Plain JS object"
-                }
-              ]
-            },
-            "options": {
-              "type": "object",
-              "description": "Optional render options",
-              "properties": {
-                "minify": {
-                  "type": "boolean",
-                  "description": "Minify HTML output",
-                  "default": false
-                },
-                "includeComments": {
-                  "type": "boolean",
-                  "description": "Include HTML comments",
-                  "default": true
-                },
-                "tailwindCDN": {
-                  "type": "boolean",
-                  "description": "Include Tailwind CSS CDN link",
-                  "default": true
-                },
-                "indentSize": {
-                  "type": "number",
-                  "description": "Spaces per indent level",
-                  "default": 2
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "required": [
-            "schema"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "html": {
-              "type": "string",
-              "description": "Complete rendered HTML document"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "snapshot_page",
-      "server": "gutenberg",
-      "description": "Render a page spec, deploy to Cloudflare Pages preview, and capture a screenshot for visual QA.",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "spec_path": {
-              "type": "string",
-              "description": "Absolute path to the page specification YAML file"
-            },
-            "project_name": {
-              "type": "string",
-              "description": "Cloudflare Pages project name to deploy snapshot preview to"
-            },
-            "viewport": {
-              "type": "object",
-              "properties": {
-                "width": {
-                  "type": "number",
-                  "description": "Viewport width in pixels (default: 1440)"
-                },
-                "height": {
-                  "type": "number",
-                  "description": "Viewport height in pixels (default: 900)"
-                }
-              }
-            },
-            "full_page": {
-              "type": "boolean",
-              "description": "Capture entire scrollable page instead of viewport only (default: true)"
-            }
-          },
-          "required": [
-            "spec_path",
-            "project_name"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "snapshot_path": {
-              "type": "string",
-              "description": "Local path to saved PNG screenshot"
-            },
-            "preview_url": {
-              "type": "string",
-              "description": "Live preview URL on Cloudflare Pages"
-            },
-            "dimensions": {
-              "type": "object",
-              "properties": {
-                "width": {
-                  "type": "number"
-                },
-                "height": {
-                  "type": "number"
-                }
-              }
-            },
-            "timestamp": {
-              "type": "string",
-              "description": "ISO 8601 timestamp of snapshot"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "validate_schema",
-      "server": "gutenberg",
-      "description": "Validate a Gutenberg page schema and return detailed errors and warnings",
-      "schema": {
-        "input": {
-          "type": "object",
-          "properties": {
-            "schema": {
-              "description": "Page schema to validate as a YAML string or a plain object.",
-              "oneOf": [
-                {
-                  "type": "string",
-                  "description": "YAML string"
-                },
-                {
-                  "type": "object",
-                  "description": "Plain JS object"
-                }
-              ]
-            }
-          },
-          "required": [
-            "schema"
-          ],
-          "additionalProperties": false
-        },
-        "output": {
-          "type": "object",
-          "properties": {
-            "valid": {
-              "type": "boolean",
-              "description": "True if schema has no blocking errors"
-            },
-            "errors": {
+            "content": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "path": {
+                  "type": {
                     "type": "string"
                   },
-                  "message": {
+                  "text": {
                     "type": "string"
                   }
                 }
-              },
-              "description": "Blocking validation errors"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "find",
+      "server": "scout",
+      "description": "# find",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "Glob pattern to match files (e.g., '*.ts', '**/*.test.js', 'package.json')"
             },
-            "warnings": {
+            "path": {
+              "type": "string",
+              "description": "Directory path to search in. Default: current working directory"
+            },
+            "max_depth": {
+              "type": "number",
+              "description": "Maximum directory depth to traverse. Default: 10"
+            },
+            "case_sensitive": {
+              "type": "boolean",
+              "description": "Whether pattern matching is case-sensitive. Default: true"
+            },
+            "exclude_dirs": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Non-blocking suggestions"
+              "description": "Directory names to exclude from search. Default: ['node_modules', '.git', 'dist', 'build', '.next', 'coverage']"
+            },
+            "files_only": {
+              "type": "boolean",
+              "description": "Return only files (not directories). Default: true"
+            }
+          },
+          "required": [
+            "pattern"
+          ]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "survey",
+      "server": "scout",
+      "description": "# fs_survey",
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Directory path to survey"
+            },
+            "intent": {
+              "type": "string",
+              "description": "Optional: what you're looking for, in natural language. Used for smart sampling."
+            },
+            "depth": {
+              "type": "number",
+              "description": "Max directory depth to traverse. Default: 4"
+            },
+            "include_samples": {
+              "type": "boolean",
+              "description": "Include first 10 lines of key files. Default: false"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         }
@@ -2142,11 +1855,6 @@
   "servers": [
     {
       "name": "flowbot",
-      "type": "local",
-      "description": ""
-    },
-    {
-      "name": "fs",
       "type": "local",
       "description": ""
     },
@@ -2161,7 +1869,22 @@
       "description": ""
     },
     {
+      "name": "marionette",
+      "type": "local",
+      "description": ""
+    },
+    {
+      "name": "pages-helper",
+      "type": "local",
+      "description": ""
+    },
+    {
       "name": "rosetta",
+      "type": "local",
+      "description": ""
+    },
+    {
+      "name": "scout",
       "type": "local",
       "description": ""
     }

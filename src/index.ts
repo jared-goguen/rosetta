@@ -1,6 +1,7 @@
-import { startServer } from "mcp-core";
+import { serve } from "mcp-core";
 
-await startServer({
+await serve({
   name: "rosetta",
   version: "0.1.0",
+  serverDir: import.meta.dir,
 });

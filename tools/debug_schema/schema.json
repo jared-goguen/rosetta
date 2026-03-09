@@ -1,0 +1,32 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "tool_name": {
+        "type": "string",
+        "description": "Optional: specific tool name to debug (e.g., 'done', 'render_page')"
+      },
+      "server": {
+        "type": "string",
+        "description": "Optional: specific server to check (e.g., 'flowbot', 'gutenberg')"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string",
+        "description": "Overall status: 'ok' or 'failed'"
+      },
+      "report": {
+        "type": "string",
+        "description": "Human-readable diagnostic report"
+      },
+      "details": {
+        "type": "object",
+        "description": "Structured details about each stage"
+      }
+    }
+  }
+}
